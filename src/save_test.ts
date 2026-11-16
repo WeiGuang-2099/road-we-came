@@ -66,6 +66,13 @@ describe('SaveStore', () => {
     expect(store.isMuted()).toBe(true);
   });
 
+  it('remembers the language switched to, even after forgetting', () => {
+    expect(store.language()).toBeNull();
+    store.setLanguage('en');
+    store.forget();
+    expect(store.language()).toBe('en');
+  });
+
   it('keeps working without storage', () => {
     const offline = new SaveStore(null);
     offline.saveRun(RUN);

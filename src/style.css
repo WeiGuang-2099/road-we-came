@@ -384,6 +384,31 @@ body {
   animation: stamp 500ms cubic-bezier(0.2, 0.8, 0.3, 1.2) forwards;
 }
 
+/* Writing other than Chinese runs across the scroll rather than down it.
+   Before anything is written, the page language decides. */
+.scroll-paper.latin,
+html:lang(en) .scroll-paper:not(.han) {
+  width: min(100%, 24rem);
+  height: auto;
+  min-height: 11rem;
+  padding: 1.5rem 1.75rem 4.75rem;
+  writing-mode: horizontal-tb;
+}
+
+.scroll-paper.latin .scroll-text,
+html:lang(en) .scroll-paper:not(.han) .scroll-text {
+  height: auto;
+  letter-spacing: 0.01em;
+  line-height: 1.5;
+  writing-mode: horizontal-tb;
+}
+
+.scroll-paper.latin .seal,
+html:lang(en) .scroll-paper:not(.han) .seal {
+  right: 1rem;
+  left: auto;
+}
+
 /* What was kept, lost and added */
 
 .compare {
@@ -436,12 +461,17 @@ body {
   display: inline-block;
 }
 
-/* Chrome */
+/* The language switch and the sound toggle */
 
-.sound {
+.controls {
   position: fixed;
   right: 1.25rem;
   bottom: 1rem;
+  display: flex;
+  gap: 1.25rem;
+}
+
+.controls button {
   padding: 0.25em 0;
   border: 0;
   background: none;
@@ -451,7 +481,7 @@ body {
   cursor: pointer;
 }
 
-.sound:hover {
+.controls button:hover {
   color: var(--ink);
 }
 
@@ -504,6 +534,47 @@ body {
   }
 }
 
+/* English */
+
+/* A Latin serif for the world's words. LXGW WenKai's own Latin letters keep
+   the handwriting; Chinese fonts stay behind for anything written in Chinese. */
+html:lang(en) {
+  --serif:
+    'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia,
+    'Noto Serif SC', 'Songti SC', 'SimSun', serif;
+  --kai: 'LXGW WenKai', Georgia, 'Kaiti SC', 'KaiTi', serif;
+}
+
+html:lang(en) body {
+  line-height: 1.7;
+}
+
+html:lang(en) .title {
+  max-width: 9ch;
+  font-size: clamp(2.75rem, 9vw, 4.25rem);
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  writing-mode: horizontal-tb;
+}
+
+html:lang(en) .place {
+  letter-spacing: 0.03em;
+}
+
+/* Nothing to hang: English speech is not set off with 「. */
+html:lang(en) .speech {
+  padding-left: 0;
+  text-indent: 0;
+}
+
+html:lang(en) .actions.chosen .picked::before {
+  content: '“';
+}
+
+html:lang(en) .actions.chosen .picked::after {
+  content: '”';
+}
+
 @media (max-width: 760px) {
   body {
     font-size: 1.0625rem;
@@ -526,8 +597,8 @@ body {
     height: 14rem;
   }
 
-  /* Fixed at the bottom it would sit on top of the text column. */
-  .sound {
+  /* Fixed at the bottom they would sit on top of the text column. */
+  .controls {
     position: absolute;
     top: 1rem;
     bottom: auto;

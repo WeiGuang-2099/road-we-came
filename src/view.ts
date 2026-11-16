@@ -1,4 +1,4 @@
-import {isMeaningful} from './chars';
+import {type Part, hasHan, isMeaningful, partsOf} from './chars';
 import type {Mark} from './compare';
 import {REASON} from './script';
 
@@ -24,6 +24,9 @@ export interface ComparisonRow {
   readonly placeholder?: string;
 }
 
+/** A line that opens with a quotation mark is spoken. */
+const SPOKEN = /^[「“"]/;
+
 const BASE_PAUSE_MS = 450;
 const PAUSE_PER_CHAR_MS = 55;
 const MAX_PAUSE_MS = 2400;
@@ -41,9 +44,10 @@ export class View {
   private readonly scene: HTMLElement;
   private scrollText: HTMLElement | null = null;
 
-  constructor(root: HTMLElement) {
+  /** `roadLabel` names the list of places passed, for screen readers. */
+  constructor(root: HTMLElement, roadLabel: string) {
     this.road = element('ol', 'road');
-    this.road.setAttribute('aria-label', '走过的地方');
+    this.road.setAttribute('aria-label', roadLabel);
     this.scene = element('section', 'scene');
     this.scene.setAttribute('aria-live', 'polite');
     root.append(this.road, this.scene);
@@ -84,7 +88,7 @@ export class View {
    * moves on sooner. {@link REASON} in `text` is replaced by `reason`.
    */
   async say(text: string, reason?: string): Promise<void> {
-    const line = element('p', text.startsWith('「') ? 'line speech' : 'line');
+    const line = element('p', SPOKEN.test(text) ? 'line speech' : 'line');
     text.split(REASON).forEach((part, i) => {
       if (i > 0 && reason !== undefined) {
         line.append(element('span', 'reason', reason));
@@ -102,10 +106,12 @@ export class View {
 
   async premise(text: string): Promise<void> {
     const line = element('p', 'premise');
-    // One span per clause, so a wrapped line breaks after the comma.
-    line.append(
-      ...text.split(/(?<=，)/).map(clause => element('span', 'clause', clause)),
-    );
+    // One span per clause, so a wrapped line breaks after the comma. A space
+    // after an English comma stays between the spans, where it can show.
+    for (const clause of text.split(/(?<=[，,])/)) {
+      const lead = /^\s*/.exec(clause)?.[0] ?? '';
+      line.append(lead, element('span', 'clause', clause.slice(lead.length)));
+    }
     this.reveal(line);
     await waitOrSkip(readingTime(text));
   }
@@ -218,7 +224,13 @@ export class View {
           return;
         }
         const node = element('p', 'words');
-        node.append(...Array.from(text, ch => element('span', 'ch', ch)));
+        // A span per word, or per Chinese character, so the dissolve can take
+        // them one at a time without breaking an English word across lines.
+        node.append(
+          ...partsOf(text).map(part =>
+            part.word ? element('span', 'ch', part.text) : part.text,
+          ),
+        );
         form.replaceWith(node);
         resolve({text, node});
       });
@@ -238,18 +250,21 @@ export class View {
     node.classList.add('gone');
   }
 
-  /** Shows `text` as a row of characters; resolves with the index picked. */
-  pickChar(text: string, labelFor: (ch: string) => string): Promise<number> {
+  /** Shows a sentence with each word a button; resolves with the part picked. */
+  pickPart(
+    parts: readonly Part[],
+    labelFor: (word: string) => string,
+  ): Promise<number> {
     const row = element('p', 'fare');
     const choices: HTMLButtonElement[] = [];
-    Array.from(text).forEach((ch, index) => {
-      if (!isMeaningful(ch)) {
-        row.append(element('span', 'ch', ch));
+    parts.forEach((part, index) => {
+      if (!part.word) {
+        row.append(part.text);
         return;
       }
-      const choice = button('ch', ch);
+      const choice = button('ch', part.text);
       choice.dataset.index = String(index);
-      choice.setAttribute('aria-label', labelFor(ch));
+      choice.setAttribute('aria-label', labelFor(part.text));
       choices.push(choice);
       row.append(choice);
     });
@@ -288,16 +303,25 @@ export class View {
     if (!writing) {
       return;
     }
+    // Chinese is written in columns; other writing runs across the scroll.
+    writing.parentElement?.classList.add(hasHan(text) ? 'han' : 'latin');
     writing.append(element('span', 'visually-hidden', text));
-    // Every character takes its place before any is inked, so the scroll
-    // settles on its final size at once instead of shifting sideways each
-    // time a new column starts.
-    const strokes = Array.from(text, ch => {
-      const stroke = element('span', 'stroke pending', ch);
-      stroke.setAttribute('aria-hidden', 'true');
-      return stroke;
-    });
-    writing.append(...strokes);
+    // Every word takes its place before any is inked, so the scroll settles
+    // on its final size at once instead of shifting sideways each time a new
+    // column starts. Each Chinese character is a word of its own.
+    const strokes: HTMLElement[] = [];
+    const hidden = element('span');
+    hidden.setAttribute('aria-hidden', 'true');
+    for (const part of partsOf(text)) {
+      if (part.word) {
+        const stroke = element('span', 'stroke pending', part.text);
+        strokes.push(stroke);
+        hidden.append(stroke);
+      } else {
+        hidden.append(part.text);
+      }
+    }
+    writing.append(hidden);
     fitColumns(writing);
     writing.scrollIntoView({block: 'center', behavior: scrollBehavior()});
     for (const stroke of strokes) {
@@ -315,7 +339,7 @@ export class View {
     for (const row of rows) {
       const text = element('dd');
       for (const mark of row.marks) {
-        text.append(element('span', mark.kind, mark.ch));
+        text.append(element('span', mark.kind, mark.text));
       }
       if (row.marks.length === 0 && row.placeholder) {
         text.append(element('span', 'none', row.placeholder));

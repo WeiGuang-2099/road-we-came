@@ -1,3 +1,5 @@
+import {type Language, isLanguage} from './script';
+
 // Every GitHub Pages project site under one account shares an origin, and so
 // shares localStorage. All keys carry this prefix to stay out of each other's
 // way.
@@ -5,6 +7,7 @@ const PREFIX = 'laishilu:v1:';
 const RUN_KEY = `${PREFIX}run`;
 const HISTORY_KEY = `${PREFIX}history`;
 const MUTED_KEY = `${PREFIX}muted`;
+const LANGUAGE_KEY = `${PREFIX}language`;
 const PROBE_KEY = `${PREFIX}probe`;
 
 /** A journey in progress. */
@@ -79,6 +82,16 @@ export class SaveStore {
 
   setMuted(muted: boolean): void {
     this.write(MUTED_KEY, muted);
+  }
+
+  /** The language the player switched to, if they ever did. */
+  language(): Language | null {
+    const value = this.read(LANGUAGE_KEY);
+    return isLanguage(value) ? value : null;
+  }
+
+  setLanguage(language: Language): void {
+    this.write(LANGUAGE_KEY, language);
   }
 
   private read(key: string): unknown {

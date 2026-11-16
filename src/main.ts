@@ -5,25 +5,54 @@ import './style.css';
 
 import {Ambience} from './ambience';
 import {Game} from './game';
+import {SCRIPTS, otherLanguage, pickLanguage} from './language';
 import {SaveStore, browserStorage} from './save';
-import {SOUND} from './script';
+import type {Language, Script} from './script';
 import {View} from './view';
 
-function mountSoundToggle(ambience: Ambience, store: SaveStore): void {
-  const toggle = document.createElement('button');
-  toggle.type = 'button';
-  toggle.className = 'sound';
+/** The language switch and the sound toggle, kept in a corner. */
+function mountControls(
+  language: Language,
+  script: Script,
+  ambience: Ambience,
+  store: SaveStore,
+): void {
+  const other = SCRIPTS[otherLanguage(language)];
+  const switcher = button(other.languageName);
+  switcher.lang = other.lang;
+  switcher.addEventListener('click', () => {
+    store.setLanguage(otherLanguage(language));
+    // The address carries the choice too, in case storage is unavailable.
+    const url = new URL(location.href);
+    url.searchParams.set('lang', otherLanguage(language));
+    location.assign(url);
+  });
+
+  const sound = button('');
   const render = (): void => {
-    toggle.textContent = ambience.isMuted() ? SOUND.unmute : SOUND.mute;
+    sound.textContent = ambience.isMuted()
+      ? script.sound.unmute
+      : script.sound.mute;
   };
-  toggle.addEventListener('click', () => {
+  sound.addEventListener('click', () => {
     ambience.setMuted(!ambience.isMuted());
     store.setMuted(ambience.isMuted());
     ambience.start();
     render();
   });
   render();
-  document.body.append(toggle);
+
+  const controls = document.createElement('div');
+  controls.className = 'controls';
+  controls.append(switcher, sound);
+  document.body.append(controls);
+}
+
+function button(label: string): HTMLButtonElement {
+  const node = document.createElement('button');
+  node.type = 'button';
+  node.textContent = label;
+  return node;
 }
 
 const root = document.querySelector<HTMLElement>('#app');
@@ -31,6 +60,15 @@ if (!root) {
   throw new Error('Missing #app element.');
 }
 const store = new SaveStore(browserStorage());
+const language = pickLanguage(
+  location.search,
+  store.language(),
+  navigator.languages,
+);
+const script = SCRIPTS[language];
+document.documentElement.lang = script.lang;
+document.title = script.title.name;
+
 const ambience = new Ambience(store.isMuted());
-mountSoundToggle(ambience, store);
-void new Game(new View(root), store, ambience).start();
+mountControls(language, script, ambience, store);
+void new Game(new View(root, script.road), store, ambience, script).start();

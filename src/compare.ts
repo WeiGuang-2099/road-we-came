@@ -1,16 +1,17 @@
-import {isMeaningful} from './chars';
+import {type Part, partsOf} from './chars';
 
 export type MarkKind = 'kept' | 'lost' | 'added' | 'plain';
 
 export interface Mark {
-  readonly ch: string;
+  /** A word, a Chinese character, or what lies between two words. */
+  readonly text: string;
   readonly kind: MarkKind;
 }
 
 export interface Alignment {
-  /** The first text; characters missing from the second are `lost`. */
+  /** The first text; words missing from the second are `lost`. */
   readonly before: readonly Mark[];
-  /** The second text; characters not in the first are `added`. */
+  /** The second text; words not in the first are `added`. */
   readonly after: readonly Mark[];
   /** Dice coefficient over the longest common subsequence, 0 to 1. */
   readonly similarity: number;
@@ -23,16 +24,17 @@ const MOSTLY_MIN = 0.7;
 const PARTLY_MIN = 0.35;
 
 /**
- * Lines up two texts by their longest common subsequence. Punctuation, spaces
- * and letter case are ignored, so only the wording is compared.
+ * Lines up two texts by their longest common subsequence of words, where
+ * each Chinese character counts as a word. Punctuation, spaces and letter
+ * case are ignored, so only the wording is compared.
  */
 export function align(before: string, after: string): Alignment {
-  const a = Array.from(before);
-  const b = Array.from(after);
-  const aIndices = meaningfulIndices(a);
-  const bIndices = meaningfulIndices(b);
-  const x = aIndices.map(i => a[i].toLowerCase());
-  const y = bIndices.map(i => b[i].toLowerCase());
+  const a = partsOf(before);
+  const b = partsOf(after);
+  const aIndices = wordIndices(a);
+  const bIndices = wordIndices(b);
+  const x = aIndices.map(i => comparable(a[i]));
+  const y = bIndices.map(i => comparable(b[i]));
   const table = lcsTable(x, y);
 
   const keptA = new Set<number>();
@@ -54,8 +56,8 @@ export function align(before: string, after: string): Alignment {
 
   const total = x.length + y.length;
   return {
-    before: a.map((ch, k) => markOf(ch, keptA.has(k), 'lost')),
-    after: b.map((ch, k) => markOf(ch, keptB.has(k), 'added')),
+    before: a.map((part, k) => markOf(part, keptA.has(k), 'lost')),
+    after: b.map((part, k) => markOf(part, keptB.has(k), 'added')),
     similarity: total === 0 ? 1 : (2 * keptA.size) / total,
   };
 }
@@ -91,7 +93,7 @@ function repeatsRumor(
   carried: string,
   recall: string,
 ): boolean {
-  // Both alignments mark the characters of `carried`, index for index.
+  // Both alignments mark the parts of `carried`, index for index.
   const added = align(origin, carried).after;
   const echoed = align(carried, recall).before;
   return added.some(
@@ -99,14 +101,19 @@ function repeatsRumor(
   );
 }
 
-function meaningfulIndices(chars: readonly string[]): number[] {
+function wordIndices(parts: readonly Part[]): number[] {
   const indices: number[] = [];
-  chars.forEach((ch, i) => {
-    if (isMeaningful(ch)) {
+  parts.forEach((part, i) => {
+    if (part.word) {
       indices.push(i);
     }
   });
   return indices;
+}
+
+/** A word as compared: case and the shape of its apostrophe do not count. */
+function comparable(part: Part): string {
+  return part.text.toLowerCase().replace(/’/g, "'");
 }
 
 function lcsTable(x: readonly string[], y: readonly string[]): number[][] {
@@ -124,9 +131,9 @@ function lcsTable(x: readonly string[], y: readonly string[]): number[][] {
   return table;
 }
 
-function markOf(ch: string, kept: boolean, missing: MarkKind): Mark {
-  if (!isMeaningful(ch)) {
-    return {ch, kind: 'plain'};
+function markOf(part: Part, kept: boolean, missing: MarkKind): Mark {
+  if (!part.word) {
+    return {text: part.text, kind: 'plain'};
   }
-  return {ch, kind: kept ? 'kept' : missing};
+  return {text: part.text, kind: kept ? 'kept' : missing};
 }

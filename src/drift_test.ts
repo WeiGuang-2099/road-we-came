@@ -52,6 +52,13 @@ describe('drift', () => {
     expect(results.every(result => !result.includes('趣'))).toBe(true);
   });
 
+  it('mishears English words that sound alike', () => {
+    const results = new Set(
+      SEEDS.map(seed => drift('I miss the sea', 1, new Random(seed))),
+    );
+    expect(results.has('I miss the see')).toBe(true);
+  });
+
   it('retells English reasons word by word', () => {
     const text = 'I want to see the sea';
     const results = SEEDS.map(seed => drift(text, 1, new Random(seed)));

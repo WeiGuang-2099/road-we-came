@@ -1,29 +1,46 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
+import type {Part} from './chars';
 import {Game, type GameView} from './game';
 import {MemoryStorage} from './memory_storage';
 import {SaveStore} from './save';
-import {
-  FERRY,
-  GATE,
-  NEXT,
-  ORIGIN,
-  REASON,
-  REPLIES,
-  STATIONS,
-  SUMMIT,
-  TITLE,
-  VERDICTS,
-} from './script';
+import {REASON, type Script, type StationId} from './script';
+import {EN} from './script_en';
+import {ZH} from './script_zh';
 import type {ComparisonRow, WriteOptions, Written} from './view';
 
-/** One thing the player does: click a button, write a line, or pay a character. */
+const {
+  title: TITLE,
+  next: NEXT,
+  origin: ORIGIN,
+  replies: REPLIES,
+  summit: SUMMIT,
+  verdicts: VERDICTS,
+} = ZH;
+
+const STATION_IDS: readonly StationId[] = ['teahouse', 'inn', 'bridge'];
+
+/** Every place on the road, in order, as `script` names them. */
+function placesIn(script: Script): string[] {
+  return [
+    ...STATION_IDS.map(id => script.stations[id].place),
+    script.ferry.place,
+    script.gate.place,
+    script.summit.place,
+  ];
+}
+
+const RUMORS = new Set(
+  [ZH, EN].flatMap(script => STATION_IDS.map(id => script.stations[id].rumor)),
+);
+
+/** One thing the player does: click a button, write a line, or pay a word. */
 type Answer =
   {readonly pick: string} | {readonly write: string} | {readonly give: string};
 
 const pick = (label: string): Answer => ({pick: label});
 const write = (text: string): Answer => ({write: text});
-const give = (ch: string): Answer => ({give: ch});
+const give = (word: string): Answer => ({give: word});
 
 // Game only removes or dissolves the written line; it never reads from it.
 const LINE = {remove: (): void => {}} as unknown as HTMLElement;
@@ -77,10 +94,7 @@ class ScriptedView implements GameView {
   }
 
   say(text: string, reason?: string): Promise<void> {
-    if (
-      reason !== undefined &&
-      STATIONS.some(station => station.rumor === text)
-    ) {
+    if (reason !== undefined && RUMORS.has(text)) {
       this.rumors.push(reason);
     }
     this.lines.push(reason === undefined ? text : text.replace(REASON, reason));
@@ -121,10 +135,10 @@ class ScriptedView implements GameView {
     return Promise.resolve();
   }
 
-  pickChar(text: string): Promise<number> {
-    return this.answer(text, answer =>
+  pickPart(parts: readonly Part[]): Promise<number> {
+    return this.answer(parts.map(part => part.text).join(''), answer =>
       'give' in answer
-        ? found(Array.from(text).indexOf(answer.give))
+        ? found(parts.findIndex(part => part.word && part.text === answer.give))
         : undefined,
     );
   }
@@ -138,7 +152,8 @@ class ScriptedView implements GameView {
 
   showComparison(rows: readonly ComparisonRow[]): void {
     this.rows = rows.map(
-      row => row.marks.map(mark => mark.ch).join('') || (row.placeholder ?? ''),
+      row =>
+        row.marks.map(mark => mark.text).join('') || (row.placeholder ?? ''),
     );
   }
 
@@ -161,9 +176,10 @@ class ScriptedView implements GameView {
 async function play(
   storage: Storage,
   answers: readonly Answer[],
+  script: Script = ZH,
 ): Promise<ScriptedView> {
   const view = new ScriptedView(answers);
-  void new Game(view, new SaveStore(storage), {start() {}}).start();
+  void new Game(view, new SaveStore(storage), {start() {}}, script).start();
   await view.stopped;
   if (view.answers.length > 0) {
     throw new Error(
@@ -211,12 +227,7 @@ function before(stage: Stage): Answer[] {
 }
 
 const WHOLE_JOURNEY = [pick(TITLE.start), ...from('origin')];
-const PLACES = [
-  ...STATIONS.map(station => station.place),
-  FERRY.place,
-  GATE.place,
-  SUMMIT.place,
-];
+const PLACES = placesIn(ZH);
 
 interface Reload {
   readonly when: string;
@@ -278,7 +289,7 @@ describe('Game', () => {
     expect(view.offered[0]).toEqual([TITLE.start]);
     expect(view.waitingOn).toBe(SUMMIT.again);
     expect(view.road).toEqual(PLACES);
-    expect(view.rumors).toHaveLength(STATIONS.length);
+    expect(view.rumors).toHaveLength(STATION_IDS.length);
     // The ferry took 海 from the reason retold at the bridge.
     expect(view.rows).toEqual([WHY, '想去看看', RECALL]);
     expect(view.inscribed).toBe(RECALL);
@@ -476,6 +487,46 @@ describe('Game', () => {
       const view = await play(new MemoryStorage(), []);
 
       expect(view.offered).toEqual([[TITLE.start]]);
+    });
+  });
+
+  describe('in English', () => {
+    const REASON_EN = 'I want to see the sea before I turn thirty';
+
+    it('walks the whole road, paying the ferryman a whole word', async () => {
+      const view = await play(
+        new MemoryStorage(),
+        [
+          pick(EN.title.start),
+          write(REASON_EN),
+          pick(EN.origin.next),
+          pick(EN.replies.accept),
+          pick(EN.next),
+          pick(EN.replies.deny),
+          write(REASON_EN),
+          pick(EN.next),
+          pick(EN.replies.deny),
+          write(REASON_EN),
+          pick(EN.next),
+          give('sea'),
+          pick(EN.next),
+          pick(EN.next),
+          write('I want to see the sea'),
+        ],
+        EN,
+      );
+
+      expect(view.waitingOn).toBe(EN.summit.again);
+      expect(view.road).toEqual(placesIn(EN));
+      expect(view.rows).toEqual([
+        REASON_EN,
+        'I want to see the before I turn thirty',
+        'I want to see the sea',
+      ]);
+      // Six of the ten words, all of them the player's own.
+      expect(view.lines).toContain(EN.verdicts.mostly);
+      // Nothing the player reads is left in Chinese.
+      expect(view.lines.join('\n')).not.toMatch(/\p{Script=Han}/u);
     });
   });
 });

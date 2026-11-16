@@ -1,28 +1,27 @@
 import type {Ambience} from './ambience';
-import {hasMeaningfulChars, removeCharAt} from './chars';
+import {type Part, hasWords, partsOf, withoutPart} from './chars';
 import {align, judge, similarity} from './compare';
 import {drift} from './drift';
 import {Random, randomSeed} from './random';
 import type {Run, SaveStore} from './save';
-import {
-  FERRY,
-  GATE,
-  NEXT,
-  ORIGIN,
-  REPLIES,
-  STATIONS,
-  SUMMIT,
-  TITLE,
-  VERDICTS,
-  type Station,
-} from './script';
+import type {Script, StationId} from './script';
 import type {ComparisonRow, WriteOptions, Written} from './view';
 
-type StageId = 'origin' | Station['id'] | 'ferry' | 'gate' | 'summit';
+/** The stations, in the order the road reaches them. */
+const STATIONS: readonly StationId[] = ['teahouse', 'inn', 'bridge'];
+
+/** How many small changes the reason picks up on its way to each station. */
+const DRIFT_STEPS: Readonly<Record<StationId, number>> = {
+  teahouse: 1,
+  inn: 2,
+  bridge: 2,
+};
+
+type StageId = 'origin' | StationId | 'ferry' | 'gate' | 'summit';
 
 const STAGES: readonly StageId[] = [
   'origin',
-  ...STATIONS.map(station => station.id),
+  ...STATIONS,
   'ferry',
   'gate',
   'summit',
@@ -43,14 +42,18 @@ export interface GameView {
   proceed(label: string): Promise<void>;
   write(options: WriteOptions): Promise<Written>;
   dissolve(node: HTMLElement): Promise<void>;
-  pickChar(text: string, labelFor: (ch: string) => string): Promise<number>;
+  pickPart(
+    parts: readonly Part[],
+    labelFor: (word: string) => string,
+  ): Promise<number>;
   showScroll(seal: string): void;
   inscribe(text: string): Promise<void>;
   showComparison(rows: readonly ComparisonRow[]): void;
 }
 
 /**
- * Plays the journey from the title screen to the summit, and again.
+ * Plays the journey from the title screen to the summit, and again, in the
+ * language of the script it is given.
  *
  * Each stage calls {@link Game.advance} once its choice is final. Progress is
  * saved there, so a reload resumes at the first stage not yet settled.
@@ -59,15 +62,18 @@ export class Game {
   private readonly view: GameView;
   private readonly store: SaveStore;
   private readonly ambience: Pick<Ambience, 'start'>;
+  private readonly script: Script;
 
   constructor(
     view: GameView,
     store: SaveStore,
     ambience: Pick<Ambience, 'start'>,
+    script: Script,
   ) {
     this.view = view;
     this.store = store;
     this.ambience = ambience;
+    this.script = script;
   }
 
   async start(): Promise<void> {
@@ -82,28 +88,31 @@ export class Game {
   }
 
   private async titleScreen(): Promise<Run> {
-    let note: string = TITLE.note;
+    const {title} = this.script;
+    let note = title.note;
     for (;;) {
       await this.view.enter();
-      this.view.showTitle(TITLE.name, note);
+      this.view.showTitle(title.name, note);
       const saved = this.resumableRun();
-      const options = saved ? [TITLE.resume, TITLE.restart] : [TITLE.start];
+      const options = saved ? [title.resume, title.restart] : [title.start];
       const hasPast = saved !== null || this.store.loadHistory().length > 0;
       const choice = await this.view.choose(
         options,
-        hasPast ? [TITLE.forget] : [],
+        hasPast ? [title.forget] : [],
       );
       if (choice === options.length) {
         if (await this.confirmForget()) {
           this.store.forget();
-          note = TITLE.forgotten;
+          note = title.forgotten;
         }
         continue;
       }
       this.ambience.start();
       if (saved && choice === 0) {
         this.view.setRoad(
-          STAGES.slice(0, saved.stage).map(placeOf).filter(Boolean),
+          STAGES.slice(0, saved.stage)
+            .map(stage => this.placeOf(stage))
+            .filter(Boolean),
         );
         return saved;
       }
@@ -114,10 +123,11 @@ export class Game {
 
   /** Asks before every journey is forgotten; true if the player agrees. */
   private async confirmForget(): Promise<boolean> {
-    await this.view.say(TITLE.forgetWarning);
+    const {title} = this.script;
+    await this.view.say(title.forgetWarning);
     const choice = await this.view.choose([
-      TITLE.forgetConfirm,
-      TITLE.forgetCancel,
+      title.forgetConfirm,
+      title.forgetCancel,
     ]);
     return choice === 0;
   }
@@ -138,7 +148,7 @@ export class Game {
       case 'summit':
         return this.summit(run);
       default:
-        return this.station(run, stationFor(stage));
+        return this.station(run, stage);
     }
   }
 
@@ -148,40 +158,45 @@ export class Game {
   }
 
   private async origin(run: Run): Promise<void> {
+    const {origin} = this.script;
     await this.view.enter();
-    await this.view.say(ORIGIN.prompt);
-    this.view.note(ORIGIN.hint);
+    await this.view.say(origin.prompt);
+    this.view.note(origin.hint);
     const {text, node} = await this.view.write({
-      placeholder: ORIGIN.placeholder,
-      action: ORIGIN.action,
+      placeholder: origin.placeholder,
+      action: origin.action,
       minMeaningful: 2,
+      maxLength: this.script.maxLength,
     });
     run.origin = text;
     run.carried = text;
     this.advance(run);
     await this.view.dissolve(node);
-    await this.view.say(ORIGIN.handover);
-    await this.view.proceed(ORIGIN.next);
+    await this.view.say(origin.handover);
+    await this.view.proceed(origin.next);
   }
 
-  private async station(run: Run, station: Station): Promise<void> {
+  private async station(run: Run, id: StationId): Promise<void> {
+    const {replies} = this.script;
+    const station = this.script.stations[id];
     await this.view.enter(station.place);
     for (const line of station.intro) {
       await this.view.say(line);
     }
     if (run.rumor === undefined) {
-      run.rumor = drift(run.carried, station.driftSteps, this.randomFor(run));
+      run.rumor = drift(run.carried, DRIFT_STEPS[id], this.randomFor(run));
       this.store.saveRun(run);
     }
     await this.view.say(station.rumor, run.rumor);
 
     const denied =
-      (await this.view.choose([REPLIES.accept, REPLIES.deny])) === 1;
+      (await this.view.choose([replies.accept, replies.deny])) === 1;
     if (denied) {
       await this.view.say(station.askAgain);
       const {text} = await this.view.write({
-        placeholder: REPLIES.placeholder,
+        placeholder: replies.placeholder,
         action: station.tell,
+        maxLength: this.script.maxLength,
       });
       run.carried = text;
     } else {
@@ -190,49 +205,55 @@ export class Game {
     run.rumor = undefined;
     this.advance(run);
     await this.view.say(denied ? station.corrected : station.accepted);
-    await this.view.proceed(NEXT);
+    await this.view.proceed(this.script.next);
   }
 
   private async ferry(run: Run): Promise<void> {
-    await this.view.enter(FERRY.place);
-    for (const line of FERRY.intro) {
+    const {ferry} = this.script;
+    await this.view.enter(ferry.place);
+    for (const line of ferry.intro) {
       await this.view.say(line);
     }
-    if (hasMeaningfulChars(run.carried)) {
-      this.view.note(FERRY.instruction);
-      const index = await this.view.pickChar(run.carried, FERRY.giveLabel);
-      run.carried = removeCharAt(run.carried, index);
+    // The fare is one word: a whole word, or one character of Chinese.
+    const parts = partsOf(run.carried);
+    if (parts.some(part => part.word)) {
+      this.view.note(ferry.instruction);
+      const index = await this.view.pickPart(parts, ferry.giveLabel);
+      run.carried = withoutPart(run.carried, index);
       this.advance(run);
-      await this.view.say(FERRY.taken);
+      await this.view.say(ferry.taken);
     } else {
       this.advance(run);
-      await this.view.say(FERRY.waived);
+      await this.view.say(ferry.waived);
     }
-    await this.view.say(FERRY.landed);
-    await this.view.proceed(NEXT);
+    await this.view.say(ferry.landed);
+    await this.view.proceed(this.script.next);
   }
 
   private async gate(run: Run): Promise<void> {
-    await this.view.enter(GATE.place);
+    const {gate} = this.script;
+    await this.view.enter(gate.place);
     this.advance(run);
-    for (const line of GATE.lines) {
+    for (const line of gate.lines) {
       await this.view.say(line);
     }
-    await this.view.proceed(NEXT);
+    await this.view.proceed(this.script.next);
   }
 
   private async summit(run: Run): Promise<void> {
-    await this.view.enter(SUMMIT.place);
-    for (const line of SUMMIT.arrival) {
+    const {summit, verdicts} = this.script;
+    await this.view.enter(summit.place);
+    for (const line of summit.arrival) {
       await this.view.say(line);
     }
-    this.view.showScroll(TITLE.name);
-    for (const line of SUMMIT.request) {
+    this.view.showScroll(summit.seal);
+    for (const line of summit.request) {
       await this.view.say(line);
     }
     const {text: recall, node} = await this.view.write({
-      placeholder: SUMMIT.placeholder,
-      action: SUMMIT.action,
+      placeholder: summit.placeholder,
+      action: summit.action,
+      maxLength: this.script.maxLength,
     });
     node.remove();
 
@@ -250,31 +271,46 @@ export class Game {
     await this.view.inscribe(recall);
     const remembered = align(run.origin, recall);
     this.view.showComparison([
-      {label: SUMMIT.originLabel, marks: remembered.before},
+      {label: summit.originLabel, marks: remembered.before},
       {
-        label: SUMMIT.carriedLabel,
-        // The ferry can take the last character a short reason had left.
-        marks: hasMeaningfulChars(run.carried)
+        label: summit.carriedLabel,
+        // The ferry can take the last word a short reason had left.
+        marks: hasWords(run.carried)
           ? align(run.origin, run.carried).after
           : [],
-        placeholder: SUMMIT.nothingCarried,
+        placeholder: summit.nothingCarried,
       },
-      {label: SUMMIT.recallLabel, marks: remembered.after},
+      {label: summit.recallLabel, marks: remembered.after},
     ]);
-    this.view.note(SUMMIT.legend);
-    await this.view.say(VERDICTS[judge(run.origin, run.carried, recall)]);
+    this.view.note(summit.legend);
+    await this.view.say(verdicts[judge(run.origin, run.carried, recall)]);
     if (previous) {
       if (similarity(previous.origin, run.origin) === 1) {
-        await this.view.say(SUMMIT.sameAsLast);
+        await this.view.say(summit.sameAsLast);
       } else {
-        await this.view.say(SUMMIT.lastTime, previous.origin);
+        await this.view.say(summit.lastTime, previous.origin);
       }
     }
-    await this.view.premise(SUMMIT.premise);
+    await this.view.premise(summit.premise);
     if (journeys > 1) {
-      this.view.note(SUMMIT.count(journeys));
+      this.view.note(summit.count(journeys));
     }
-    await this.view.proceed(SUMMIT.again);
+    await this.view.proceed(summit.again);
+  }
+
+  private placeOf(stage: StageId): string {
+    switch (stage) {
+      case 'origin':
+        return '';
+      case 'ferry':
+        return this.script.ferry.place;
+      case 'gate':
+        return this.script.gate.place;
+      case 'summit':
+        return this.script.summit.place;
+      default:
+        return this.script.stations[stage].place;
+    }
   }
 
   private randomFor(run: Run): Random {
@@ -291,27 +327,4 @@ function newRun(): Run {
     carried: '',
     startedAt: Date.now(),
   };
-}
-
-function stationFor(id: Station['id']): Station {
-  const station = STATIONS.find(s => s.id === id);
-  if (!station) {
-    throw new Error(`Unknown station: ${id}`);
-  }
-  return station;
-}
-
-function placeOf(stage: StageId): string {
-  switch (stage) {
-    case 'origin':
-      return '';
-    case 'ferry':
-      return FERRY.place;
-    case 'gate':
-      return GATE.place;
-    case 'summit':
-      return SUMMIT.place;
-    default:
-      return stationFor(stage).place;
-  }
 }

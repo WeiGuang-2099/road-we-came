@@ -10,13 +10,32 @@ describe('align', () => {
 
   it('marks forgotten and invented characters', () => {
     const {before, after, similarity: score} = align('想去看看海', '想去看湖');
-    expect(before.filter(m => m.kind === 'lost').map(m => m.ch)).toHaveLength(
+    expect(before.filter(m => m.kind === 'lost').map(m => m.text)).toHaveLength(
       2,
     );
-    expect(after.filter(m => m.kind === 'added').map(m => m.ch)).toEqual([
+    expect(after.filter(m => m.kind === 'added').map(m => m.text)).toEqual([
       '湖',
     ]);
     expect(score).toBeCloseTo(6 / 9);
+  });
+
+  it('compares English word by word', () => {
+    const {
+      before,
+      after,
+      similarity: score,
+    } = align('I want to see the sea', 'I want to see the lake');
+    expect(before.filter(m => m.kind === 'lost').map(m => m.text)).toEqual([
+      'sea',
+    ]);
+    expect(after.filter(m => m.kind === 'added').map(m => m.text)).toEqual([
+      'lake',
+    ]);
+    expect(score).toBeCloseTo(10 / 12);
+  });
+
+  it('does not care which apostrophe a word was written with', () => {
+    expect(similarity("I don't know", 'I don’t know')).toBe(1);
   });
 
   it('marks punctuation as plain', () => {
@@ -48,6 +67,16 @@ describe('judge', () => {
   it('notices rumor words mixed into a memory mostly kept', () => {
     const carried = '要去瞧瞧湖，看它有多大';
     expect(judge(origin, carried, '想去看看湖，看它有多大')).toBe('mixed');
+  });
+
+  it('notices rumor words mixed into an English memory', () => {
+    expect(
+      judge(
+        'I want to see the sea before I turn thirty',
+        'I want to visit the lake before I am thirty',
+        'I want to see the lake before I turn thirty',
+      ),
+    ).toBe('mixed');
   });
 
   it('does not blame the rumor when it only lost words', () => {

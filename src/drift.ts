@@ -145,7 +145,76 @@ const WORD_SHIFTS = new Map<string, readonly string[]>([
   ['alone', ['together']],
   ['always', ['once']],
   ['never', ['once']],
+  ['grandmother', ['grandma']],
+  ['grandma', ['grandmother']],
+  ['brother', ['sister']],
+  ['sister', ['brother']],
+  ['family', ['folks', 'people']],
+  ['city', ['town']],
+  ['town', ['village']],
+  ['river', ['stream']],
+  ['stars', ['lights']],
+  ['travel', ['wander']],
+  ['journey', ['trip']],
+  ['start', ['begin']],
+  ['begin', ['start']],
+  ['escape', ['leave']],
+  ['lost', ['left']],
+  ['promise', ['deal']],
+  ['goodbye', ['hello']],
+  ['sorry', ['thanks']],
+  ['forgive', ['forget']],
+  ['someone', ['somebody', 'anyone']],
+  ['everything', ['anything']],
+  ['nothing', ['everything']],
+  ['happy', ['content']],
+  ['brave', ['bold']],
+  ['quiet', ['silence']],
+  ['peace', ['rest']],
+  ['again', ['once more']],
+  ['back', ['away']],
+  ['away', ['back']],
+  ['world', ['country']],
+  ['work', ['job']],
 ]);
+
+/**
+ * English words that sound alike, so a passerby may pass on the other one.
+ * Both sides are real words, as with SOUND_ALIKES.
+ */
+const HOMOPHONES: ReadonlyArray<readonly [string, string]> = [
+  ['sea', 'see'],
+  ['past', 'passed'],
+  ['mist', 'missed'],
+  ['morning', 'mourning'],
+  ['whole', 'hole'],
+  ['peace', 'piece'],
+  ['write', 'right'],
+  ['son', 'sun'],
+  ['road', 'rode'],
+  ['here', 'hear'],
+  ['dear', 'deer'],
+  ['tale', 'tail'],
+  ['week', 'weak'],
+  ['soul', 'sole'],
+  ['heal', 'heel'],
+  ['wait', 'weight'],
+  ['rain', 'reign'],
+  ['seen', 'scene'],
+  ['aloud', 'allowed'],
+  ['meet', 'meat'],
+  ['night', 'knight'],
+  ['flower', 'flour'],
+  ['whether', 'weather'],
+  ['wonder', 'wander'],
+];
+
+const HEARD_AS_WORD = new Map<string, readonly string[]>(
+  HOMOPHONES.flatMap(([a, b]): Array<[string, readonly string[]]> => [
+    [a, [b]],
+    [b, [a]],
+  ]),
+);
 
 const WORD = /[A-Za-z']+/g;
 
@@ -160,6 +229,7 @@ const HAN_CHANGES: ReadonlyArray<readonly [Change, number]> = [
 
 const LATIN_CHANGES: ReadonlyArray<readonly [Change, number]> = [
   [shiftWord, 5],
+  [mishearWord, 3],
   [dropWord, 3],
   [swapLetters, 1],
 ];
@@ -270,14 +340,27 @@ function standaloneChars(text: string): Set<number> {
 }
 
 function shiftWord(text: string, random: Random): string | null {
+  return replaceWord(text, random, WORD_SHIFTS);
+}
+
+function mishearWord(text: string, random: Random): string | null {
+  return replaceWord(text, random, HEARD_AS_WORD);
+}
+
+/** Replaces one word found in `table` with one of the words it maps to. */
+function replaceWord(
+  text: string,
+  random: Random,
+  table: ReadonlyMap<string, readonly string[]>,
+): string | null {
   const matches = [...text.matchAll(WORD)].filter(m =>
-    WORD_SHIFTS.has(m[0].toLowerCase()),
+    table.has(m[0].toLowerCase()),
   );
   if (matches.length === 0) {
     return null;
   }
   const match = random.pick(matches);
-  const options = WORD_SHIFTS.get(match[0].toLowerCase());
+  const options = table.get(match[0].toLowerCase());
   if (!options) {
     return null;
   }
