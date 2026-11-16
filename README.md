@@ -40,6 +40,7 @@ npm run dev
 | `src/save.ts`     | 本地存档                                       |
 | `src/ambience.ts` | 用 WebAudio 合成的风声，第一次点击后才响       |
 | `src/random.ts`   | 带种子的随机数，刷新页面后转述结果不变         |
+| `src/chars.ts`    | 哪些字算数：标点、符号和空格不计入比较和走样   |
 
 测试文件和源码放在一起，命名为 `*_test.ts`。
 

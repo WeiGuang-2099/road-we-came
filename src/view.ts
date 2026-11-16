@@ -6,6 +6,8 @@ export interface WriteOptions {
   readonly placeholder: string;
   readonly action: string;
   readonly minLength?: number;
+  /** Fewest characters that are not punctuation or spaces. */
+  readonly minMeaningful?: number;
   readonly maxLength?: number;
 }
 
@@ -18,6 +20,8 @@ export interface Written {
 export interface ComparisonRow {
   readonly label: string;
   readonly marks: readonly Mark[];
+  /** Shown instead when there are no marks. */
+  readonly placeholder?: string;
 }
 
 const BASE_PAUSE_MS = 450;
@@ -140,13 +144,21 @@ export class View {
   }
 
   write(options: WriteOptions): Promise<Written> {
-    const {placeholder, action, minLength = 1, maxLength = 40} = options;
+    const {
+      placeholder,
+      action,
+      minLength = 1,
+      minMeaningful = 0,
+      maxLength = 40,
+    } = options;
     const form = element('form', 'write');
     const input = element('textarea', 'write-input');
     input.rows = 1;
     input.maxLength = maxLength;
     input.placeholder = placeholder;
     input.spellcheck = false;
+    // Enter submits, so phone keyboards should label the key that way.
+    input.enterKeyHint = 'done';
     input.setAttribute('aria-label', placeholder);
     const submit = button('action', action);
     submit.type = 'submit';
@@ -158,11 +170,18 @@ export class View {
     input.focus({preventScroll: true});
 
     const current = (): string => input.value.replace(/\s+/g, ' ').trim();
+    const acceptable = (text: string): boolean => {
+      const chars = Array.from(text);
+      return (
+        chars.length >= minLength &&
+        chars.filter(isMeaningful).length >= minMeaningful
+      );
+    };
     input.addEventListener('input', () => {
       // Grow with the text instead of scrolling inside the box.
       input.style.height = 'auto';
       input.style.height = `${input.scrollHeight + input.offsetHeight - input.clientHeight}px`;
-      submit.disabled = Array.from(current()).length < minLength;
+      submit.disabled = !acceptable(current());
     });
     input.addEventListener('keydown', event => {
       // While an IME is composing, Enter picks a candidate instead of
@@ -178,7 +197,7 @@ export class View {
       form.addEventListener('submit', event => {
         event.preventDefault();
         const text = current();
-        if (Array.from(text).length < minLength) {
+        if (!acceptable(text)) {
           return;
         }
         const node = element('p', 'words');
@@ -280,6 +299,9 @@ export class View {
       const text = element('dd');
       for (const mark of row.marks) {
         text.append(element('span', mark.kind, mark.ch));
+      }
+      if (row.marks.length === 0 && row.placeholder) {
+        text.append(element('span', 'none', row.placeholder));
       }
       const item = element('div');
       item.append(element('dt', '', row.label), text);

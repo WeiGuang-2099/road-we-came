@@ -106,7 +106,7 @@ export class Game {
     const {text, node} = await this.view.write({
       placeholder: ORIGIN.placeholder,
       action: ORIGIN.action,
-      minLength: 2,
+      minMeaningful: 2,
     });
     run.origin = text;
     run.carried = text;
@@ -202,7 +202,14 @@ export class Game {
     const remembered = align(run.origin, recall);
     this.view.showComparison([
       {label: SUMMIT.originLabel, marks: remembered.before},
-      {label: SUMMIT.carriedLabel, marks: align(run.origin, run.carried).after},
+      {
+        label: SUMMIT.carriedLabel,
+        // The ferry can take the last character a short reason had left.
+        marks: hasMeaningfulChars(run.carried)
+          ? align(run.origin, run.carried).after
+          : [],
+        placeholder: SUMMIT.nothingCarried,
+      },
       {label: SUMMIT.recallLabel, marks: remembered.after},
     ]);
     this.view.note(SUMMIT.legend);

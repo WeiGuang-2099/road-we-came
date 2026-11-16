@@ -124,6 +124,7 @@ export const SUMMIT = {
   action: '写上去',
   originLabel: '出发时，你写的是',
   carriedLabel: '一路上，人们传的是',
+  nothingCarried: '一个字也没剩下。',
   recallLabel: '现在，你记得的是',
   legend: '淡下去的字丢在了路上，带波浪线的字是后来添的。',
   premise: '当你的旅程抵达终点后，你还会记得你为何而出发吗？',
