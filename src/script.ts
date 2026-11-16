@@ -14,16 +14,27 @@ export const REASON = '{reason}';
 
 export type StationId = 'teahouse' | 'inn' | 'bridge';
 
-export interface Station {
-  readonly place: string;
+/** What a station says on one visit. */
+export interface Visit {
   readonly intro: readonly string[];
   /** What people on the road say the reason was. Contains {@link REASON}. */
   readonly rumor: string;
   readonly accepted: string;
   readonly askAgain: string;
+  readonly corrected: string;
+}
+
+export interface Station {
+  readonly place: string;
   /** Button that hands over the corrected reason. */
   readonly tell: string;
-  readonly corrected: string;
+  /** What the first journey hears. */
+  readonly first: Visit;
+  /**
+   * What later journeys hear, taking turns. There are at least two, so two
+   * journeys in a row never hear the same lines.
+   */
+  readonly later: readonly [Visit, Visit, ...Visit[]];
 }
 
 /**

@@ -4,7 +4,13 @@ import type {Part} from './chars';
 import {Game, type GameView} from './game';
 import {MemoryStorage} from './memory_storage';
 import {SaveStore} from './save';
-import {REASON, type Script, type StationId} from './script';
+import {
+  REASON,
+  type Script,
+  type Station,
+  type StationId,
+  type Visit,
+} from './script';
 import {EN} from './script_en';
 import {ZH} from './script_zh';
 import type {ComparisonRow, WriteOptions, Written} from './view';
@@ -30,8 +36,17 @@ function placesIn(script: Script): string[] {
   ];
 }
 
+/** Every visit a station can be heard on, the first one first. */
+function visitsTo(station: Station): Visit[] {
+  return [station.first, ...station.later];
+}
+
 const RUMORS = new Set(
-  [ZH, EN].flatMap(script => STATION_IDS.map(id => script.stations[id].rumor)),
+  [ZH, EN].flatMap(script =>
+    STATION_IDS.flatMap(id =>
+      visitsTo(script.stations[id]).map(visit => visit.rumor),
+    ),
+  ),
 );
 
 /** One thing the player does: click a button, write a line, or pay a word. */
@@ -487,6 +502,92 @@ describe('Game', () => {
       const view = await play(new MemoryStorage(), []);
 
       expect(view.offered).toEqual([[TITLE.start]]);
+    });
+  });
+
+  describe('on later journeys', () => {
+    const {teahouse, inn, bridge} = ZH.stations;
+
+    it('greets a returning player with other lines at every station', async () => {
+      const view = await play(new MemoryStorage(), [
+        ...WHOLE_JOURNEY,
+        pick(SUMMIT.again),
+        ...from('origin'),
+      ]);
+
+      // The second journey answers as the first did: it accepts at the
+      // teahouse and retells the reason at the inn and the bridge.
+      const [atTeahouse, atInn, atBridge] = view.rumors.slice(
+        STATION_IDS.length,
+      );
+      expect(view.lines).toEqual(
+        expect.arrayContaining([
+          ...teahouse.later[0].intro,
+          teahouse.later[0].rumor.replace(REASON, atTeahouse),
+          teahouse.later[0].accepted,
+          ...inn.later[0].intro,
+          inn.later[0].rumor.replace(REASON, atInn),
+          inn.later[0].askAgain,
+          inn.later[0].corrected,
+          ...bridge.later[0].intro,
+          bridge.later[0].rumor.replace(REASON, atBridge),
+          bridge.later[0].askAgain,
+          bridge.later[0].corrected,
+        ]),
+      );
+      for (const station of [teahouse, inn, bridge]) {
+        const opening = station.first.intro[0];
+        expect(view.lines.filter(line => line === opening)).toHaveLength(1);
+      }
+    });
+
+    it('takes turns with the later lines, then starts over', async () => {
+      const journeys = teahouse.later.length + 2;
+      const view = await play(new MemoryStorage(), [
+        ...WHOLE_JOURNEY,
+        ...Array.from({length: journeys - 1}, () => [
+          pick(SUMMIT.again),
+          ...from('origin'),
+        ]).flat(),
+      ]);
+
+      const openings = visitsTo(teahouse).map(visit => visit.intro[0]);
+      const heard = view.lines
+        .filter(line => openings.includes(line))
+        .map(line => openings.indexOf(line));
+      // The first visit, then each later one in turn, then the turns again.
+      expect(heard).toEqual([0, ...teahouse.later.map((_, i) => i + 1), 1]);
+    });
+
+    it('meets the player afresh once the past is forgotten', async () => {
+      const storage = new MemoryStorage();
+      await play(storage, WHOLE_JOURNEY);
+      const view = await play(storage, [
+        pick(TITLE.forget),
+        pick(TITLE.forgetConfirm),
+        pick(TITLE.start),
+        ...before('inn'),
+      ]);
+
+      expect(view.lines).toEqual(
+        expect.arrayContaining([...teahouse.first.intro]),
+      );
+      expect(view.lines).not.toContain(teahouse.later[0].intro[0]);
+    });
+
+    it('keeps its lines when a later journey is reloaded', async () => {
+      const storage = new MemoryStorage();
+      await play(storage, [
+        ...WHOLE_JOURNEY,
+        pick(SUMMIT.again),
+        ...before('inn'),
+      ]);
+      const view = await play(storage, [pick(TITLE.resume), ...from('inn')]);
+
+      expect(view.lines).toEqual(
+        expect.arrayContaining([...inn.later[0].intro]),
+      );
+      expect(view.lines).not.toContain(inn.first.intro[0]);
     });
   });
 

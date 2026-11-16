@@ -4,7 +4,7 @@ import {align, judge, similarity} from './compare';
 import {drift} from './drift';
 import {Random, randomSeed} from './random';
 import type {Run, SaveStore} from './save';
-import type {Script, StationId} from './script';
+import type {Script, Station, StationId, Visit} from './script';
 import type {ComparisonRow, WriteOptions, Written} from './view';
 
 /** The stations, in the order the road reaches them. */
@@ -179,20 +179,22 @@ export class Game {
   private async station(run: Run, id: StationId): Promise<void> {
     const {replies} = this.script;
     const station = this.script.stations[id];
+    // History only grows at the summit, so a reload hears the same lines.
+    const visit = visitOn(station, this.store.loadHistory().length);
     await this.view.enter(station.place);
-    for (const line of station.intro) {
+    for (const line of visit.intro) {
       await this.view.say(line);
     }
     if (run.rumor === undefined) {
       run.rumor = drift(run.carried, DRIFT_STEPS[id], this.randomFor(run));
       this.store.saveRun(run);
     }
-    await this.view.say(station.rumor, run.rumor);
+    await this.view.say(visit.rumor, run.rumor);
 
     const denied =
       (await this.view.choose([replies.accept, replies.deny])) === 1;
     if (denied) {
-      await this.view.say(station.askAgain);
+      await this.view.say(visit.askAgain);
       const {text} = await this.view.write({
         placeholder: replies.placeholder,
         action: station.tell,
@@ -204,7 +206,7 @@ export class Game {
     }
     run.rumor = undefined;
     this.advance(run);
-    await this.view.say(denied ? station.corrected : station.accepted);
+    await this.view.say(denied ? visit.corrected : visit.accepted);
     await this.view.proceed(this.script.next);
   }
 
@@ -316,6 +318,17 @@ export class Game {
   private randomFor(run: Run): Random {
     return new Random(run.seed + run.stage * 0x9e3779b1);
   }
+}
+
+/**
+ * What `station` says on a journey that begins after `finished` others have
+ * reached the summit. The first journey hears the first visit; later ones
+ * take turns with the rest. Forgetting the past starts the count over.
+ */
+function visitOn(station: Station, finished: number): Visit {
+  return finished === 0
+    ? station.first
+    : station.later[(finished - 1) % station.later.length];
 }
 
 function newRun(): Run {

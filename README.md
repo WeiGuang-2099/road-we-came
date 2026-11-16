@@ -38,6 +38,16 @@ npm run dev
 
 构建产物用的是相对路径（`vite.config.ts` 里的 `base: './'`），仓库改名不用改构建配置，只有 `index.html` 里分享卡片的网址要跟着改。
 
+## 依赖更新
+
+[`.github/dependabot.yml`](.github/dependabot.yml) 让 Dependabot 每月检查一次 npm 依赖和 GitHub Actions 的版本，有更新就发 PR：
+
+- npm 的小版本和补丁合成一个 PR，大版本各自单独一个；Actions 的更新合成一个 PR。
+- 新版本发布满 7 天才会提，躲开刚发布就撤回或被投毒的版本。安全修复不用等。
+- TypeScript 只收补丁更新，原因见下面的备注。
+
+每个 PR 上，[`check.yml`](.github/workflows/check.yml) 会跑一遍检查、测试和构建，通过了再合并；合并到 `main` 后照常由 `deploy.yml` 发布。安全修复的 PR 要先在仓库 Settings → Advanced Security 里打开 **Dependabot alerts** 和 **Dependabot security updates**。
+
 ## 发布到 itch.io
 
 1. 运行 `npm run zip`，得到 `laishilu.zip`。
@@ -71,4 +81,6 @@ npm run dev
 - 楷体用的是霞鹜文楷（npm 包 `lxgw-wenkai-webfont`，字体按 SIL OFL 1.1 授权），按 unicode-range 拆成 97 块，浏览器只下载页面上用到的字。
 - 分享卡片的标签在 `index.html`，图片是 `public/og.png`（1200×630）。卡片只有中文一种。
 - 英文版的经卷改成横排，印章仍然用中文的"来时路"。
+- 茶寮、驿站、桥头的台词各有几套：第一趟用 `first`，之后按走到山顶的次数轮流用 `later` 里的几套，抹去走过的路后从头算。同一趟里三处用的是同一个序号，所以 `later` 是按趟写的：第一套三处都认出了你，第二套从茶寮的小雨一直下到驿站，到桥头已是雨后。加新的一套时，三处要一起加。
 - `package.json` 里的 `overrides` 是为了让 typescript-eslint 用上修复过安全问题的 minimatch，等它自己升级依赖后可以删掉。
+- TypeScript 在 `package.json` 里写的是 `~6.0.3`，`dependabot.yml` 也只让它收补丁更新，因为 typescript-eslint 目前只支持 6.1 以下的版本。等它支持新版本了，手动升级 TypeScript，再删掉 `dependabot.yml` 里那条 `ignore`。

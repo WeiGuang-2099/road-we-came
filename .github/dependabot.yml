@@ -1,0 +1,41 @@
+# Opens pull requests that keep npm packages and GitHub Actions up to date.
+# check.yml runs on each one, so a broken update shows before it is merged.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    # Waits a week after a release, so versions that are pulled or turn out to
+    # be compromised are skipped. Security updates do not wait.
+    cooldown:
+      default-days: 7
+    groups:
+      # Minor and patch updates come together. Each major update comes on its
+      # own, so it can be held back alone.
+      minor-and-patch:
+        patterns: ['*']
+        update-types: [minor, patch]
+    ignore:
+      # typescript-eslint only supports TypeScript below 6.1 for now. Once it
+      # supports newer releases, upgrade TypeScript by hand and drop this.
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-minor
+          - version-update:semver-major
+    commit-message:
+      prefix: chore
+      include: scope
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ['*']
+    commit-message:
+      prefix: ci
+      include: scope

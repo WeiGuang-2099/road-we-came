@@ -39,40 +39,120 @@ export const EN: Script = {
   stations: {
     teahouse: {
       place: 'Teahouse',
-      intro: [
-        'There’s a teahouse by the road. Steam curls from a kettle that has only just boiled.',
-        'The woman who keeps it pours you a bowl and looks you over for a long moment.',
-      ],
-      rumor: `“Word travels faster than you, friend. They say you left saying ‘${REASON}’. Am I right?”`,
-      accepted: 'She nods and nudges the bowl a little closer.',
-      askAgain: '“Then tell me yourself. How did it go?”',
       tell: 'Tell her',
-      corrected:
-        '“I’ll remember that. If anyone asks further on, that’s what I’ll tell them.”',
+      first: {
+        intro: [
+          'There’s a teahouse by the road. Steam curls from a kettle that has only just boiled.',
+          'The woman who keeps it pours you a bowl and looks you over for a long moment.',
+        ],
+        rumor: `“Word travels faster than you, friend. They say you left saying ‘${REASON}’. Am I right?”`,
+        accepted: 'She nods and nudges the bowl a little closer.',
+        askAgain: '“Then tell me yourself. How did it go?”',
+        corrected:
+          '“I’ll remember that. If anyone asks further on, that’s what I’ll tell them.”',
+      },
+      later: [
+        {
+          intro: [
+            'The teahouse is right where it was, and the kettle is boiling again.',
+            'The woman who keeps it looks up, and stops. “You again.”',
+          ],
+          rumor: `“This time, they say you left saying ‘${REASON}’. Have they got it right?”`,
+          accepted: 'She tops up your bowl and asks nothing more.',
+          askAgain: '“Then how does it go this time? In your own words.”',
+          corrected:
+            '“All right. If anyone asks this time, that’s what I’ll tell them.”',
+        },
+        {
+          intro: [
+            'A light rain starts to fall, and you wait under the teahouse eaves for a while.',
+            'The woman who keeps it stirs up the fire and waves you inside.',
+          ],
+          rumor: `“Rain makes people talk. Someone in here said you left saying ‘${REASON}’. That so?”`,
+          accepted: 'She hums, and turns back to watch the rain.',
+          askAgain: '“Go on, then. I’m listening.”',
+          corrected: '“When the rain stops, that’s how I’ll tell it.”',
+        },
+      ],
     },
     inn: {
       place: 'Waystation',
-      intro: [
-        'You reach the waystation just before dark.',
-        'The keeper is bent over his ledger by lamplight and doesn’t look up.',
-      ],
-      rumor: `“Heard all about you. The day you left, you said ‘${REASON}’. That right?”`,
-      accepted: 'The keeper adds a line to his ledger.',
-      askAgain: '“Slowly, now. Let me get it down.”',
       tell: 'Read it out',
-      corrected: 'He copies your words into the ledger in a hurried scrawl.',
+      first: {
+        intro: [
+          'You reach the waystation just before dark.',
+          'The keeper is bent over his ledger by lamplight and doesn’t look up.',
+        ],
+        rumor: `“Heard all about you. The day you left, you said ‘${REASON}’. That right?”`,
+        accepted: 'The keeper adds a line to his ledger.',
+        askAgain: '“Slowly, now. Let me get it down.”',
+        corrected: 'He copies your words into the ledger in a hurried scrawl.',
+      },
+      later: [
+        {
+          intro: [
+            'Once more, you reach the waystation just before dark.',
+            'The keeper knows you at once. He sets down his pen and adds oil to the lamp.',
+          ],
+          rumor: `“Your words got here before you did: ‘${REASON}’. Have I got that right?”`,
+          accepted:
+            'Under the line he wrote last time, the keeper adds another.',
+          askAgain: '“Go on. I’ll take it down as you say it.”',
+          corrected:
+            'He strikes out what the road brought him and writes your words in its place.',
+        },
+        {
+          intro: [
+            'The rain hasn’t let up. By the time you reach the waystation, it’s fully dark.',
+            'The common room is packed with people sheltering from the rain. The keeper waves to you over their heads.',
+          ],
+          rumor: `“They’re all talking about you. They say you left saying ‘${REASON}’. Is that so?”`,
+          accepted:
+            'The keeper says nothing more and turns to see to his other guests.',
+          askAgain: '“Too noisy in here. Lean in and say it again.”',
+          corrected:
+            'The keeper reads your words out loud, and the whole room hears them.',
+        },
+      ],
     },
     bridge: {
       place: 'Stone Bridge',
-      intro: [
-        'Late the next morning, you come to a stone bridge.',
-        'A child skipping stones by the bridge spots you and comes running.',
-      ],
-      rumor: `“I know you! The grown-ups say you left because ‘${REASON}’!”`,
-      accepted: 'Very pleased, the child runs back to the stones.',
-      askAgain: '“Then what was it? Say it again!”',
       tell: 'Tell him',
-      corrected: 'The child repeats it twice under his breath and runs off.',
+      first: {
+        intro: [
+          'Late the next morning, you come to a stone bridge.',
+          'A child skipping stones by the bridge spots you and comes running.',
+        ],
+        rumor: `“I know you! The grown-ups say you left because ‘${REASON}’!”`,
+        accepted: 'Very pleased, the child runs back to the stones.',
+        askAgain: '“Then what was it? Say it again!”',
+        corrected: 'The child repeats it twice under his breath and runs off.',
+      },
+      later: [
+        {
+          intro: [
+            'Late the next morning, the stone bridge looks just as it did.',
+            'The child skipping stones seems a little taller. He knows you, and shouts from a long way off.',
+          ],
+          rumor: `“You came back! This time the grown-ups say you left because ‘${REASON}’!”`,
+          accepted: 'The child claps and says he knew it all along.',
+          askAgain: '“It isn’t? Then tell me. I’ve got a really good memory.”',
+          corrected:
+            'The child says it after you, word by word, and grins up at you.',
+        },
+        {
+          intro: [
+            'The morning after the rain, the river is running high and the stone bridge is wet.',
+            'The child is crouched by the bridge, drawing something in the mud. He stands up when he sees you.',
+          ],
+          rumor: `“Look, I wrote down what they say about you: ‘${REASON}’. Is that right?”`,
+          accepted:
+            'Pleased with himself, the child draws a little boat under the words.',
+          askAgain: '“Did I get it wrong? Tell me and I’ll write it again.”',
+          corrected:
+            'The child rubs the words out with his foot and writes yours in their place, letter by letter.',
+        },
+      ],
     },
   },
   ferry: {
