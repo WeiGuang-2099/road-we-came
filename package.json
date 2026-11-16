@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "zip": "npm run build && node scripts/zip.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -30,5 +31,8 @@
     "@typescript-eslint/typescript-estree": {
       "minimatch": "^11.0.8"
     }
+  },
+  "dependencies": {
+    "lxgw-wenkai-webfont": "^1.7.0"
   }
 }

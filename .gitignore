@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+# The itch.io upload made by npm run zip
+laishilu.zip
 
 # Editor directories and files
 .vscode/*

@@ -11,13 +11,14 @@ npm install
 npm run dev
 ```
 
-| 命令             | 作用                     |
-| ---------------- | ------------------------ |
-| `npm run dev`    | 本地开发服务器           |
-| `npm test`       | 单元测试                 |
-| `npm run lint`   | ESLint 和 Prettier 检查  |
-| `npm run format` | 自动格式化               |
-| `npm run build`  | 类型检查并构建到 `dist/` |
+| 命令             | 作用                                          |
+| ---------------- | --------------------------------------------- |
+| `npm run dev`    | 本地开发服务器                                |
+| `npm test`       | 单元测试                                      |
+| `npm run lint`   | ESLint 和 Prettier 检查                       |
+| `npm run format` | 自动格式化                                    |
+| `npm run build`  | 类型检查并构建到 `dist/`                      |
+| `npm run zip`    | 构建并打包成 `laishilu.zip`，用来上传 itch.io |
 
 ## 部署到 GitHub Pages
 
@@ -25,7 +26,13 @@ npm run dev
 2. 仓库 Settings → Pages → Source 选 **GitHub Actions**。
 3. 之后每次推送到 `main`，工作流 [`deploy.yml`](.github/workflows/deploy.yml) 会依次检查、测试、构建并发布，地址是 `https://weiguang-2099.github.io/road-we-came/`（仓库名不同就换成对应的名字）。
 
-构建产物用的是相对路径（`vite.config.ts` 里的 `base: './'`），仓库改名不用改配置。`dist/` 打成 zip 也能直接传到 itch.io。
+构建产物用的是相对路径（`vite.config.ts` 里的 `base: './'`），仓库改名不用改构建配置，只有 `index.html` 里分享卡片的网址要跟着改。
+
+## 发布到 itch.io
+
+1. 运行 `npm run zip`，得到 `laishilu.zip`。
+2. 在 itch.io 新建项目，Kind of project 选 **HTML**，上传这个 zip，并勾选 **This file will be played in the browser**。
+3. 嵌入选项里可以勾选 **Mobile friendly** 和 **Fullscreen button**，排版会跟着窗口大小调整。
 
 ## 代码结构
 
@@ -48,4 +55,6 @@ npm run dev
 
 - 同一个账号下的 GitHub Pages 站点共用一个域名，localStorage 也是共用的，所以存档键都带 `laishilu:v1:` 前缀。
 - 输入框处理了中文输入法组字时按回车的情况。以后换引擎或重写界面，也别改成在 canvas 里自绘的输入框。
+- 楷体用的是霞鹜文楷（npm 包 `lxgw-wenkai-webfont`，字体按 SIL OFL 1.1 授权），按 unicode-range 拆成 97 块，浏览器只下载页面上用到的字。
+- 分享卡片的标签在 `index.html`，图片是 `public/og.png`（1200×630）。
 - `package.json` 里的 `overrides` 是为了让 typescript-eslint 用上修复过安全问题的 minimatch，等它自己升级依赖后可以删掉。

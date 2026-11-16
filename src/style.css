@@ -9,7 +9,9 @@
   --paper: #eef3f3;
   --seal: #b23a2c;
 
-  /* Song for the world's words, Kai for the player's handwriting. */
+  /* Song for the world's words, Kai for the player's handwriting. LXGW
+     WenKai is loaded with the game (main.ts); the other Kai fonts only
+     stand in while its characters arrive. */
   --serif:
     'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', 'SimSun',
     serif;

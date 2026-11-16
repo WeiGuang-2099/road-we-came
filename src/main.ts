@@ -1,3 +1,6 @@
+// LXGW WenKai, split by unicode-range so a page only fetches the characters
+// it shows. It gives every device the same Kai, phones included.
+import 'lxgw-wenkai-webfont/lxgwwenkai-regular.css';
 import './style.css';
 
 import {Ambience} from './ambience';
