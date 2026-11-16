@@ -19,6 +19,7 @@ export const ZH: Script = {
     forgotten: '都抹去了。',
   },
   next: '继续',
+  tooShort: '再多写几个字。',
   sound: {mute: '关闭声音', unmute: '打开声音'},
   road: '走过的地方',
   origin: {

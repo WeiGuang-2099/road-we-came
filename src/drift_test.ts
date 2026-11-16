@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 
-import {hasMeaningfulChars} from './chars';
+import {wordCount} from './chars';
 import {drift} from './drift';
 import {Random} from './random';
 
@@ -18,10 +18,19 @@ describe('drift', () => {
     }
   });
 
-  it('never wears a reason down to nothing', () => {
+  it('never wears a reason down below two words', () => {
+    // 梦想 can be retold as 梦, which would leave a single word.
+    for (const text of ['看海', '梦想', '想家了', 'go home']) {
+      for (const seed of SEEDS) {
+        const result = drift(text, 5, new Random(seed));
+        expect(wordCount(result), `${text} -> ${result}`).toBeGreaterThan(1);
+      }
+    }
+  });
+
+  it('never wears a one-word reason down to nothing', () => {
     for (const seed of SEEDS) {
-      const result = drift('看海', 5, new Random(seed));
-      expect(hasMeaningfulChars(result)).toBe(true);
+      expect(wordCount(drift('海', 5, new Random(seed)))).toBe(1);
     }
   });
 

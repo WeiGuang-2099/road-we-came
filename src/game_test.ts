@@ -1,6 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
-import type {Part} from './chars';
+import {type Part, wordCount} from './chars';
 import {Game, type GameView} from './game';
 import {MemoryStorage} from './memory_storage';
 import {SaveStore} from './save';
@@ -140,9 +140,13 @@ class ScriptedView implements GameView {
     await this.choose([label]);
   }
 
+  /** Takes a written line only if it has as many words as the page asks. */
   write(options: WriteOptions): Promise<Written> {
+    const fewest = options.minWords?.count ?? 0;
     return this.answer(options.placeholder, answer =>
-      'write' in answer ? {text: answer.write, node: LINE} : undefined,
+      'write' in answer && wordCount(answer.write) >= fewest
+        ? {text: answer.write, node: LINE}
+        : undefined,
     );
   }
 
@@ -349,6 +353,31 @@ describe('Game', () => {
     ]);
 
     expect(view.rows[1]).toBe(SUMMIT.nothingCarried);
+  });
+
+  it('needs two words before setting out', async () => {
+    for (const [script, one, two] of [
+      [ZH, '海', '看海'],
+      [EN, 'sea', 'the sea'],
+    ] as const) {
+      const start = pick(script.title.start);
+      await expect(
+        play(new MemoryStorage(), [start, write(one)], script),
+      ).rejects.toThrow(`Stuck at "${script.origin.placeholder}"`);
+      const view = await play(new MemoryStorage(), [start, write(two)], script);
+      expect(view.waitingOn).toBe(script.origin.next);
+    }
+  });
+
+  it('needs a word, not just punctuation, to retell the reason', async () => {
+    await expect(
+      play(new MemoryStorage(), [
+        pick(TITLE.start),
+        ...before('teahouse'),
+        pick(REPLIES.deny),
+        write('。'),
+      ]),
+    ).rejects.toThrow(`Stuck at "${REPLIES.placeholder}"`);
   });
 
   it('counts the journeys that reach the summit', async () => {

@@ -262,6 +262,15 @@ body {
   box-shadow: 0 1px 0 var(--hand);
 }
 
+.write-hint {
+  margin: 0.6rem 0 0;
+}
+
+/* Kept in the page while empty, but takes no room. */
+.write-hint:empty {
+  margin: 0;
+}
+
 .words {
   margin: 0.5rem 0 1.25rem;
   color: var(--hand);

@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 
-import {hasWords, partsOf, withoutPart} from './chars';
+import {hasWords, partsOf, withoutPart, wordCount} from './chars';
 
 const words = (text: string): string[] =>
   partsOf(text)
@@ -69,5 +69,18 @@ describe('hasWords', () => {
   it('ignores punctuation and spaces', () => {
     expect(hasWords('。 …')).toBe(false);
     expect(hasWords('海')).toBe(true);
+  });
+});
+
+describe('wordCount', () => {
+  it('counts Chinese characters and whole English words', () => {
+    expect(wordCount('看海。')).toBe(2);
+    expect(wordCount("I don't know")).toBe(3);
+    expect(wordCount('看 the 海')).toBe(3);
+  });
+
+  it('counts a run of letters as one word', () => {
+    expect(wordCount('asdf')).toBe(1);
+    expect(wordCount('。 …')).toBe(0);
   });
 });

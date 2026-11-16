@@ -10,10 +10,6 @@ export function hasHan(text: string): boolean {
   return HAN.test(text);
 }
 
-export function hasMeaningfulChars(text: string): boolean {
-  return Array.from(text).some(isMeaningful);
-}
-
 /** A piece of a sentence: a word, or what lies between two words. */
 export interface Part {
   readonly text: string;
@@ -42,6 +38,11 @@ export function partsOf(text: string): Part[] {
 /** True if any word is left in `text`. */
 export function hasWords(text: string): boolean {
   return partsOf(text).some(part => part.word);
+}
+
+/** How many words `text` holds, each Chinese character counting as one. */
+export function wordCount(text: string): number {
+  return partsOf(text).filter(part => part.word).length;
 }
 
 /** Removes the part at `index` and tidies the space it leaves behind. */

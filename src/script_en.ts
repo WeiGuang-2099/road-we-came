@@ -21,6 +21,7 @@ export const EN: Script = {
     forgotten: 'All forgotten.',
   },
   next: 'Go on',
+  tooShort: 'A few more words.',
   sound: {mute: 'Sound off', unmute: 'Sound on'},
   road: 'Places you have passed',
   origin: {

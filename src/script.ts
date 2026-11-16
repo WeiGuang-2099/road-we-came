@@ -61,6 +61,8 @@ export interface Script {
     readonly forgotten: string;
   };
   readonly next: string;
+  /** Shown under a written line that has too few words to hand over. */
+  readonly tooShort: string;
   readonly sound: {readonly mute: string; readonly unmute: string};
   /** Names the list of places already passed, for screen readers. */
   readonly road: string;

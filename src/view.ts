@@ -1,4 +1,4 @@
-import {type Part, hasHan, isMeaningful, partsOf} from './chars';
+import {type Part, hasHan, partsOf, wordCount} from './chars';
 import type {Mark} from './compare';
 import {REASON} from './script';
 
@@ -6,8 +6,11 @@ export interface WriteOptions {
   readonly placeholder: string;
   readonly action: string;
   readonly minLength?: number;
-  /** Fewest characters that are not punctuation or spaces. */
-  readonly minMeaningful?: number;
+  /**
+   * Fewest words that can be handed over, each Chinese character counting as
+   * one, and the hint shown when the player tries with fewer.
+   */
+  readonly minWords?: {readonly count: number; readonly hint: string};
   readonly maxLength?: number;
 }
 
@@ -171,7 +174,7 @@ export class View {
       placeholder,
       action,
       minLength = 1,
-      minMeaningful = 0,
+      minWords,
       maxLength = 40,
     } = options;
     const form = element('form', 'write');
@@ -188,23 +191,23 @@ export class View {
     submit.disabled = true;
     const actions = element('div', 'actions');
     actions.append(submit);
-    form.append(input, actions);
+    // Says why a line was not taken. It stays in place, empty, so screen
+    // readers announce the hint when it appears.
+    const hint = element('p', 'note write-hint');
+    hint.setAttribute('aria-live', 'polite');
+    form.append(input, hint, actions);
     this.reveal(form);
     input.focus({preventScroll: true});
 
     const current = (): string => input.value.replace(/\s+/g, ' ').trim();
-    const acceptable = (text: string): boolean => {
-      const chars = Array.from(text);
-      return (
-        chars.length >= minLength &&
-        chars.filter(isMeaningful).length >= minMeaningful
-      );
-    };
+    const longEnough = (text: string): boolean =>
+      Array.from(text).length >= minLength;
     input.addEventListener('input', () => {
       // Grow with the text instead of scrolling inside the box.
       input.style.height = 'auto';
       input.style.height = `${input.scrollHeight + input.offsetHeight - input.clientHeight}px`;
-      submit.disabled = !acceptable(current());
+      submit.disabled = !longEnough(current());
+      hint.textContent = '';
     });
     input.addEventListener('keydown', event => {
       // While an IME is composing, Enter picks a candidate instead of
@@ -220,7 +223,12 @@ export class View {
       form.addEventListener('submit', event => {
         event.preventDefault();
         const text = current();
-        if (!acceptable(text)) {
+        if (!longEnough(text)) {
+          return;
+        }
+        if (minWords && wordCount(text) < minWords.count) {
+          hint.textContent = minWords.hint;
+          input.focus({preventScroll: true});
           return;
         }
         const node = element('p', 'words');

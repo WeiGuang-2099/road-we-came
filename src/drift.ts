@@ -1,4 +1,4 @@
-import {hasHan, isMeaningful} from './chars';
+import {hasHan, isMeaningful, wordCount} from './chars';
 import type {Random} from './random';
 
 /**
@@ -243,7 +243,14 @@ export function drift(text: string, steps: number, random: Random): string {
   return result;
 }
 
+/**
+ * A retelling can lose words, but never so many that fewer than this are
+ * left. A short reason then reaches the ferry with a word to spare.
+ */
+const FEWEST_WORDS = 2;
+
 function driftOnce(text: string, random: Random): string {
+  const floor = Math.min(wordCount(text), FEWEST_WORDS);
   const changes = [...(hasHan(text) ? HAN_CHANGES : LATIN_CHANGES)];
   while (changes.length > 0) {
     const index = weightedIndex(
@@ -252,7 +259,7 @@ function driftOnce(text: string, random: Random): string {
     );
     const [change] = changes.splice(index, 1)[0];
     const result = change(text, random);
-    if (result !== null && result !== text) {
+    if (result !== null && result !== text && wordCount(result) >= floor) {
       return result;
     }
   }

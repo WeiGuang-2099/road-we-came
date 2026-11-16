@@ -165,7 +165,9 @@ export class Game {
     const {text, node} = await this.view.write({
       placeholder: origin.placeholder,
       action: origin.action,
-      minMeaningful: 2,
+      // One word would leave the road nothing to retell, and the ferry
+      // nothing to choose from.
+      minWords: {count: 2, hint: this.script.tooShort},
       maxLength: this.script.maxLength,
     });
     run.origin = text;
@@ -198,6 +200,7 @@ export class Game {
       const {text} = await this.view.write({
         placeholder: replies.placeholder,
         action: station.tell,
+        minWords: {count: 1, hint: this.script.tooShort},
         maxLength: this.script.maxLength,
       });
       run.carried = text;
