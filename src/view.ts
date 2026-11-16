@@ -110,16 +110,32 @@ export class View {
     await waitOrSkip(readingTime(text));
   }
 
-  choose(labels: readonly string[]): Promise<number> {
+  /**
+   * Offers `labels` as buttons, and any `quiet` ones on a quieter line below.
+   * Resolves with the index picked, the quiet ones counting after `labels`.
+   */
+  choose(
+    labels: readonly string[],
+    quiet: readonly string[] = [],
+  ): Promise<number> {
+    const choice = element('div');
     const group = element('div', 'actions');
     const buttons = labels.map(label => button('action', label));
     group.append(...buttons);
+    choice.append(group);
+    if (quiet.length > 0) {
+      const aside = element('div', 'actions quiet');
+      const asides = quiet.map(label => button('action', label));
+      aside.append(...asides);
+      choice.append(aside);
+      buttons.push(...asides);
+    }
     // No autofocus: players skipping lines with Enter would pick the first
     // choice by accident.
-    this.reveal(group);
+    this.reveal(choice);
 
     return new Promise(resolve => {
-      group.addEventListener('click', event => {
+      choice.addEventListener('click', event => {
         const target = (event.target as Element).closest('button');
         const index = target ? buttons.indexOf(target) : -1;
         if (index < 0 || buttons[index].disabled) {
@@ -128,11 +144,12 @@ export class View {
         for (const b of buttons) {
           b.disabled = true;
         }
-        if (labels.length === 1) {
-          group.remove();
+        if (labels.length === 1 || index >= labels.length) {
+          choice.remove();
         } else {
           buttons[index].classList.add('picked');
           group.classList.add('chosen');
+          group.nextElementSibling?.remove();
         }
         resolve(index);
       });

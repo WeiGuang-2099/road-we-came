@@ -27,6 +27,11 @@ export const TITLE = {
   start: '开始',
   resume: '继续上路',
   restart: '重新出发',
+  forget: '抹去走过的路',
+  forgetWarning: '写下的字都会抹去，不会再回来。',
+  forgetConfirm: '抹去',
+  forgetCancel: '算了',
+  forgotten: '都抹去了。',
 } as const;
 
 export const NEXT = '继续';
@@ -127,6 +132,8 @@ export const SUMMIT = {
   nothingCarried: '一个字也没剩下。',
   recallLabel: '现在，你记得的是',
   legend: '淡下去的字丢在了路上，带波浪线的字是后来添的。',
+  lastTime: `上一次，你出发时写的是「${REASON}」。`,
+  sameAsLast: '上一次，你写的也是这一句。',
   premise: '当你的旅程抵达终点后，你还会记得你为何而出发吗？',
   count: (journeys: number): string => `这是你第 ${journeys} 次走到这里。`,
   again: '再走一次',
@@ -135,6 +142,7 @@ export const SUMMIT = {
 export const VERDICTS: Readonly<Record<Verdict, string>> = {
   exact: '一字不差。你还记得。',
   mostly: '你记得大半。有几个字，留在了路上。',
+  mixed: '你记得大半。可有的字，已经换成了路上的说法。',
   rumor: '你记住的，是路上的人说的那一句。',
   partly: '你只记得一点。剩下的，路替你改了。',
   forgotten: '你忘了。可你还是走到了这里。',

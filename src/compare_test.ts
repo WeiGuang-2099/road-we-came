@@ -45,6 +45,11 @@ describe('judge', () => {
     expect(judge(origin, carried, '要去看看湖')).toBe('rumor');
   });
 
+  it('notices rumor words mixed into a memory mostly kept', () => {
+    const carried = '要去瞧瞧湖，看它有多大';
+    expect(judge(origin, carried, '想去看看湖，看它有多大')).toBe('mixed');
+  });
+
   it('does not blame the rumor when it only lost words', () => {
     expect(judge(origin, '去看', '想去看海')).toBe('partly');
   });

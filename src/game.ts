@@ -39,7 +39,7 @@ export interface GameView {
   say(text: string, reason?: string): Promise<void>;
   note(text: string): void;
   premise(text: string): Promise<void>;
-  choose(labels: readonly string[]): Promise<number>;
+  choose(labels: readonly string[], quiet?: readonly string[]): Promise<number>;
   proceed(label: string): Promise<void>;
   write(options: WriteOptions): Promise<Written>;
   dissolve(node: HTMLElement): Promise<void>;
@@ -82,21 +82,44 @@ export class Game {
   }
 
   private async titleScreen(): Promise<Run> {
-    await this.view.enter();
-    this.view.showTitle(TITLE.name, TITLE.note);
-    const saved = this.resumableRun();
-    const choice = await this.view.choose(
-      saved ? [TITLE.resume, TITLE.restart] : [TITLE.start],
-    );
-    this.ambience.start();
-    if (saved && choice === 0) {
-      this.view.setRoad(
-        STAGES.slice(0, saved.stage).map(placeOf).filter(Boolean),
+    let note: string = TITLE.note;
+    for (;;) {
+      await this.view.enter();
+      this.view.showTitle(TITLE.name, note);
+      const saved = this.resumableRun();
+      const options = saved ? [TITLE.resume, TITLE.restart] : [TITLE.start];
+      const hasPast = saved !== null || this.store.loadHistory().length > 0;
+      const choice = await this.view.choose(
+        options,
+        hasPast ? [TITLE.forget] : [],
       );
-      return saved;
+      if (choice === options.length) {
+        if (await this.confirmForget()) {
+          this.store.forget();
+          note = TITLE.forgotten;
+        }
+        continue;
+      }
+      this.ambience.start();
+      if (saved && choice === 0) {
+        this.view.setRoad(
+          STAGES.slice(0, saved.stage).map(placeOf).filter(Boolean),
+        );
+        return saved;
+      }
+      this.store.clearRun();
+      return newRun();
     }
-    this.store.clearRun();
-    return newRun();
+  }
+
+  /** Asks before every journey is forgotten; true if the player agrees. */
+  private async confirmForget(): Promise<boolean> {
+    await this.view.say(TITLE.forgetWarning);
+    const choice = await this.view.choose([
+      TITLE.forgetConfirm,
+      TITLE.forgetCancel,
+    ]);
+    return choice === 0;
   }
 
   private resumableRun(): Run | null {
@@ -213,6 +236,7 @@ export class Game {
     });
     node.remove();
 
+    const previous = this.store.loadHistory().at(-1);
     const journeys = this.store.addJourney({
       origin: run.origin,
       carried: run.carried,
@@ -239,6 +263,13 @@ export class Game {
     ]);
     this.view.note(SUMMIT.legend);
     await this.view.say(VERDICTS[judge(run.origin, run.carried, recall)]);
+    if (previous) {
+      if (similarity(previous.origin, run.origin) === 1) {
+        await this.view.say(SUMMIT.sameAsLast);
+      } else {
+        await this.view.say(SUMMIT.lastTime, previous.origin);
+      }
+    }
     await this.view.premise(SUMMIT.premise);
     if (journeys > 1) {
       this.view.note(SUMMIT.count(journeys));

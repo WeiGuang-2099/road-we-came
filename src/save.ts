@@ -51,11 +51,13 @@ export class SaveStore {
   }
 
   clearRun(): void {
-    try {
-      this.storage?.removeItem(RUN_KEY);
-    } catch {
-      // Nothing to clean up if storage is unavailable.
-    }
+    this.remove(RUN_KEY);
+  }
+
+  /** Forgets every journey, finished or not. The sound setting stays. */
+  forget(): void {
+    this.remove(RUN_KEY);
+    this.remove(HISTORY_KEY);
   }
 
   loadHistory(): Journey[] {
@@ -93,6 +95,14 @@ export class SaveStore {
       this.storage?.setItem(key, JSON.stringify(value));
     } catch {
       // Full or blocked storage: keep playing without saving.
+    }
+  }
+
+  private remove(key: string): void {
+    try {
+      this.storage?.removeItem(key);
+    } catch {
+      // Nothing to clean up if storage is unavailable.
     }
   }
 }

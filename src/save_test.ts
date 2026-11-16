@@ -56,6 +56,16 @@ describe('SaveStore', () => {
     expect(store.isMuted()).toBe(true);
   });
 
+  it('forgets every journey but keeps the sound setting', () => {
+    store.saveRun(RUN);
+    store.addJourney(JOURNEY);
+    store.setMuted(true);
+    store.forget();
+    expect(store.loadRun()).toBeNull();
+    expect(store.loadHistory()).toEqual([]);
+    expect(store.isMuted()).toBe(true);
+  });
+
   it('keeps working without storage', () => {
     const offline = new SaveStore(null);
     offline.saveRun(RUN);

@@ -16,7 +16,8 @@ export interface Alignment {
   readonly similarity: number;
 }
 
-export type Verdict = 'exact' | 'mostly' | 'rumor' | 'partly' | 'forgotten';
+export type Verdict =
+  'exact' | 'mostly' | 'mixed' | 'rumor' | 'partly' | 'forgotten';
 
 const MOSTLY_MIN = 0.7;
 const PARTLY_MIN = 0.35;
@@ -73,14 +74,13 @@ export function judge(
   if (toOrigin === 1) {
     return 'exact';
   }
-  if (
-    repeatsRumor(origin, carried, recall) &&
-    similarity(carried, recall) >= toOrigin
-  ) {
+  const echoesRumor = repeatsRumor(origin, carried, recall);
+  if (echoesRumor && similarity(carried, recall) >= toOrigin) {
     return 'rumor';
   }
   if (toOrigin >= MOSTLY_MIN) {
-    return 'mostly';
+    // Mostly the player's own words, but some of the road's slipped in.
+    return echoesRumor ? 'mixed' : 'mostly';
   }
   return toOrigin >= PARTLY_MIN ? 'partly' : 'forgotten';
 }

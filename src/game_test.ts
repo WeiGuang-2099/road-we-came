@@ -72,10 +72,15 @@ class ScriptedView implements GameView {
     this.road = [...places];
   }
 
-  showTitle(): void {}
+  showTitle(_name: string, note: string): void {
+    this.lines.push(note);
+  }
 
   say(text: string, reason?: string): Promise<void> {
-    if (reason !== undefined) {
+    if (
+      reason !== undefined &&
+      STATIONS.some(station => station.rumor === text)
+    ) {
       this.rumors.push(reason);
     }
     this.lines.push(reason === undefined ? text : text.replace(REASON, reason));
@@ -91,10 +96,14 @@ class ScriptedView implements GameView {
     return Promise.resolve();
   }
 
-  choose(labels: readonly string[]): Promise<number> {
-    this.offered.push(labels);
-    return this.answer(labels.join(' | '), answer =>
-      'pick' in answer ? found(labels.indexOf(answer.pick)) : undefined,
+  choose(
+    labels: readonly string[],
+    quiet: readonly string[] = [],
+  ): Promise<number> {
+    const offered = [...labels, ...quiet];
+    this.offered.push(offered);
+    return this.answer(offered.join(' | '), answer =>
+      'pick' in answer ? found(offered.indexOf(answer.pick)) : undefined,
     );
   }
 
@@ -274,6 +283,11 @@ describe('Game', () => {
     expect(view.rows).toEqual([WHY, '想去看看', RECALL]);
     expect(view.inscribed).toBe(RECALL);
     expect(view.lines).toContain(VERDICTS.mostly);
+    // A first journey has no earlier reason to recall.
+    expect(view.lines).not.toContain(SUMMIT.sameAsLast);
+    expect(view.lines.join('\n')).not.toContain(
+      SUMMIT.lastTime.split(REASON)[0],
+    );
 
     const store = new SaveStore(storage);
     expect(store.loadRun()).toBeNull();
@@ -322,6 +336,33 @@ describe('Game', () => {
     expect(view.lines).toContain(SUMMIT.count(2));
   });
 
+  it('recalls the reason written on the journey before', async () => {
+    const view = await play(new MemoryStorage(), [
+      ...WHOLE_JOURNEY,
+      pick(SUMMIT.again),
+      write('回家看看'),
+      pick(ORIGIN.next),
+      ...from('teahouse'),
+    ]);
+
+    // After the second verdict and before the second premise.
+    const recalled = view.lines.indexOf(SUMMIT.lastTime.replace(REASON, WHY));
+    expect(recalled).toBeGreaterThan(view.lines.indexOf(SUMMIT.premise));
+    expect(view.lines.indexOf(SUMMIT.premise, recalled)).toBeGreaterThan(
+      recalled,
+    );
+  });
+
+  it('notices when the reason has not changed', async () => {
+    const view = await play(new MemoryStorage(), [
+      ...WHOLE_JOURNEY,
+      pick(SUMMIT.again),
+      ...from('origin'),
+    ]);
+
+    expect(view.lines).toContain(SUMMIT.sameAsLast);
+  });
+
   describe('after a reload', () => {
     it.each(RELOADS)(
       'picks up the journey $when',
@@ -334,7 +375,11 @@ describe('Game', () => {
           ...from(resumes),
         ]);
 
-        expect(second.offered[0]).toEqual([TITLE.resume, TITLE.restart]);
+        expect(second.offered[0]).toEqual([
+          TITLE.resume,
+          TITLE.restart,
+          TITLE.forget,
+        ]);
         expect(second.waitingOn).toBe(SUMMIT.again);
         expect(second.road).toEqual(whole.road);
         expect(second.rows).toEqual(whole.rows);
@@ -359,7 +404,7 @@ describe('Game', () => {
       await play(storage, WHOLE_JOURNEY);
       const view = await play(storage, []);
 
-      expect(view.waitingOn).toBe(TITLE.start);
+      expect(view.offered[0]).toEqual([TITLE.start, TITLE.forget]);
     });
 
     it('can set out afresh instead', async () => {
@@ -367,10 +412,70 @@ describe('Game', () => {
       await play(storage, [pick(TITLE.start), ...before('inn')]);
       const view = await play(storage, [pick(TITLE.restart)]);
 
-      expect(view.offered[0]).toEqual([TITLE.resume, TITLE.restart]);
+      expect(view.offered[0]).toEqual([
+        TITLE.resume,
+        TITLE.restart,
+        TITLE.forget,
+      ]);
       expect(view.waitingOn).toBe(ORIGIN.placeholder);
       expect(view.road).toEqual([]);
       expect(new SaveStore(storage).loadRun()).toBeNull();
+    });
+  });
+
+  describe('forgetting past journeys', () => {
+    /** One finished journey, and a second left at the inn. */
+    async function walkedBefore(): Promise<MemoryStorage> {
+      const storage = new MemoryStorage();
+      await play(storage, [
+        ...WHOLE_JOURNEY,
+        pick(SUMMIT.again),
+        ...before('inn'),
+      ]);
+      return storage;
+    }
+
+    it('forgets every journey once the player confirms', async () => {
+      const storage = await walkedBefore();
+      const view = await play(storage, [
+        pick(TITLE.forget),
+        pick(TITLE.forgetConfirm),
+      ]);
+
+      expect(view.offered).toEqual([
+        [TITLE.resume, TITLE.restart, TITLE.forget],
+        [TITLE.forgetConfirm, TITLE.forgetCancel],
+        [TITLE.start],
+      ]);
+      expect(view.lines).toContain(TITLE.forgetWarning);
+      expect(view.lines).toContain(TITLE.forgotten);
+      const store = new SaveStore(storage);
+      expect(store.loadRun()).toBeNull();
+      expect(store.loadHistory()).toEqual([]);
+    });
+
+    it('keeps everything when the player thinks better of it', async () => {
+      const storage = await walkedBefore();
+      const view = await play(storage, [
+        pick(TITLE.forget),
+        pick(TITLE.forgetCancel),
+      ]);
+
+      expect(view.offered.at(-1)).toEqual([
+        TITLE.resume,
+        TITLE.restart,
+        TITLE.forget,
+      ]);
+      expect(view.lines).not.toContain(TITLE.forgotten);
+      const store = new SaveStore(storage);
+      expect(store.loadRun()).not.toBeNull();
+      expect(store.loadHistory()).toHaveLength(1);
+    });
+
+    it('is not offered when there is nothing to forget', async () => {
+      const view = await play(new MemoryStorage(), []);
+
+      expect(view.offered).toEqual([[TITLE.start]]);
     });
   });
 });
