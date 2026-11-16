@@ -252,12 +252,20 @@ export class View {
     if (!writing) {
       return;
     }
-    writing.scrollIntoView({block: 'center', behavior: scrollBehavior()});
     writing.append(element('span', 'visually-hidden', text));
-    for (const ch of Array.from(text)) {
-      const stroke = element('span', 'stroke', ch);
+    // Every character takes its place before any is inked, so the scroll
+    // settles on its final size at once instead of shifting sideways each
+    // time a new column starts.
+    const strokes = Array.from(text, ch => {
+      const stroke = element('span', 'stroke pending', ch);
       stroke.setAttribute('aria-hidden', 'true');
-      writing.append(stroke);
+      return stroke;
+    });
+    writing.append(...strokes);
+    fitColumns(writing);
+    writing.scrollIntoView({block: 'center', behavior: scrollBehavior()});
+    for (const stroke of strokes) {
+      stroke.classList.remove('pending');
       if (motionAllowed()) {
         await sleep(STROKE_MS);
       }
@@ -305,6 +313,25 @@ function button(className: string, label: string): HTMLButtonElement {
   const node = element('button', className, label);
   node.type = 'button';
   return node;
+}
+
+/**
+ * Columns of vertical writing add up sideways. When they would run wider than
+ * the room the scroll has, the scroll grows taller instead, so each column
+ * holds more characters.
+ */
+function fitColumns(writing: HTMLElement): void {
+  const paper = writing.parentElement;
+  const room = paper?.parentElement;
+  if (!paper || !room) {
+    return;
+  }
+  const step = parseFloat(getComputedStyle(writing).fontSize);
+  let height = paper.offsetHeight;
+  while (paper.offsetWidth > room.clientWidth && height < window.innerHeight) {
+    height += step;
+    paper.style.height = `${height}px`;
+  }
 }
 
 function readingTime(text: string): number {

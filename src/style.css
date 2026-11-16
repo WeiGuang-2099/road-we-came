@@ -307,16 +307,18 @@ body {
   animation: appear 900ms ease-out both;
 }
 
+/* Vertical like the writing on it, so the paper widens with each column.
+   view.ts makes it taller when the columns would not fit across. */
 .scroll-paper {
   position: relative;
-  display: flex;
-  justify-content: flex-end;
+  flex-shrink: 0;
   min-width: 9rem;
   height: 17rem;
   padding: 1.75rem 2rem 1.75rem 3rem;
   border-top: 5px solid var(--ink);
   border-bottom: 9px solid var(--ink);
   background: var(--paper);
+  writing-mode: vertical-rl;
 }
 
 .scroll-text {
@@ -332,6 +334,12 @@ body {
 
 .stroke {
   animation: ink-in 500ms ease-out both;
+}
+
+/* In place but not yet written; see View.inscribe. */
+.stroke.pending {
+  visibility: hidden;
+  animation: none;
 }
 
 .seal {
