@@ -1,0 +1,509 @@
+:root {
+  /* 月白 fog for the page, 花青 for anything the player wrote, and one
+     cinnabar seal at the very end. */
+  --fog: #dde5e8;
+  --mist: #b9c7cd;
+  --ink: #23303a;
+  --ink-soft: #52626c;
+  --hand: #2b4f7e;
+  --paper: #eef3f3;
+  --seal: #b23a2c;
+
+  /* Song for the world's words, Kai for the player's handwriting. */
+  --serif:
+    'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', 'SimSun',
+    serif;
+  --kai:
+    'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', 'BiauKai', 'Noto Serif SC',
+    serif;
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fog: #1b252d;
+    --mist: #3a4a55;
+    --ink: #d4dde2;
+    --ink-soft: #8a9ba6;
+    --hand: #a9c7e8;
+    --paper: #24313a;
+    --seal: #cf5a47;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--fog);
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 1.125rem;
+  line-height: 1.95;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 32rem) minmax(0, 1fr);
+  padding: 14vh 1.5rem 7rem;
+}
+
+:focus-visible {
+  outline: 2px solid var(--hand);
+  outline-offset: 4px;
+}
+
+/* The road behind you */
+
+.road {
+  grid-row: 1;
+  grid-column: 1;
+  align-self: start;
+  justify-self: end;
+  position: sticky;
+  top: 14vh;
+  margin: 0.4rem 3rem 0 0;
+  padding: 0 1.25rem 0 0;
+  border-right: 1px solid var(--mist);
+  list-style: none;
+  color: var(--ink-soft);
+  font-family: var(--kai);
+  font-size: 1rem;
+  line-height: 2.4;
+  text-align: right;
+}
+
+.road:empty {
+  display: none;
+}
+
+.road .here {
+  color: var(--ink);
+}
+
+/* Scene */
+
+.scene {
+  grid-row: 1;
+  grid-column: 2;
+  transition: opacity 450ms ease;
+}
+
+.scene.leaving {
+  opacity: 0;
+}
+
+.place {
+  margin: 0 0 1.75rem;
+  font-family: var(--kai);
+  font-size: 1.625rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  line-height: 1.4;
+}
+
+.line {
+  margin: 0 0 0.85em;
+  text-wrap: pretty;
+  animation: appear 600ms ease-out both;
+}
+
+.note {
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+}
+
+.reason {
+  color: var(--hand);
+  font-family: var(--kai);
+  font-size: 1.12em;
+}
+
+/* Title */
+
+.scene.is-title {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--kai);
+  font-size: clamp(3.25rem, 10vw, 5rem);
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  line-height: 1;
+  writing-mode: vertical-rl;
+}
+
+.title-note {
+  margin: 2.5rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+}
+
+.scene.is-title .actions {
+  justify-content: center;
+}
+
+/* Choices and writing */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 2rem;
+  margin: 1.75rem 0 0;
+  animation: appear 600ms ease-out both;
+}
+
+.action {
+  padding: 0.1em 0;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.action:hover {
+  color: var(--hand);
+}
+
+.action:disabled {
+  border-bottom-style: dotted;
+  color: var(--ink-soft);
+  cursor: default;
+}
+
+.actions.chosen {
+  margin-top: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.actions.chosen .action {
+  display: none;
+}
+
+.actions.chosen .picked {
+  display: inline;
+  border: 0;
+  color: var(--hand);
+  font-family: var(--kai);
+}
+
+.actions.chosen .picked::before {
+  content: '「';
+}
+
+.actions.chosen .picked::after {
+  content: '」';
+}
+
+.write {
+  margin: 1.25rem 0 0;
+}
+
+.write-input {
+  display: block;
+  width: 100%;
+  padding: 0.35em 0;
+  border: 0;
+  border-bottom: 1px solid var(--mist);
+  background: transparent;
+  color: var(--hand);
+  font-family: var(--kai);
+  font-size: 1.375rem;
+  line-height: 1.6;
+  resize: none;
+}
+
+.write-input::placeholder {
+  color: var(--ink-soft);
+}
+
+.write-input:focus {
+  outline: none;
+  border-bottom-color: var(--hand);
+  box-shadow: 0 1px 0 var(--hand);
+}
+
+.words {
+  margin: 0.5rem 0 1.25rem;
+  color: var(--hand);
+  font-family: var(--kai);
+  font-size: 1.375rem;
+  line-height: 1.6;
+}
+
+.words .ch {
+  display: inline-block;
+}
+
+/* Timing mirrors DISSOLVE_* in view.ts. */
+.words.dissolving .ch {
+  animation: dissolve 1400ms ease-in forwards;
+  animation-delay: calc(700ms + var(--i, 0) * 80ms);
+}
+
+.words.gone {
+  display: none;
+}
+
+/* The ferry fare */
+
+.fare {
+  margin: 0.25rem 0 1.25rem;
+  color: var(--hand);
+  font-family: var(--kai);
+  font-size: 1.75rem;
+  line-height: 1.6;
+}
+
+.fare .ch {
+  display: inline-block;
+  padding: 0 0.06em;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+
+.fare button.ch {
+  border-bottom: 1px dotted var(--mist);
+  cursor: pointer;
+}
+
+.fare button.ch:hover {
+  color: var(--ink);
+}
+
+.fare button.ch:disabled {
+  border-bottom-color: transparent;
+  cursor: default;
+}
+
+.fare .taken {
+  animation: carried-off 1400ms ease-in forwards;
+}
+
+/* The blank scroll */
+
+.scroll {
+  display: flex;
+  justify-content: center;
+  margin: 2.25rem 0 2.5rem;
+  animation: appear 900ms ease-out both;
+}
+
+.scroll-paper {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  min-width: 9rem;
+  height: 17rem;
+  padding: 1.75rem 2rem 1.75rem 3rem;
+  border-top: 5px solid var(--ink);
+  border-bottom: 9px solid var(--ink);
+  background: var(--paper);
+}
+
+.scroll-text {
+  margin: 0;
+  height: 100%;
+  color: var(--hand);
+  font-family: var(--kai);
+  font-size: 1.625rem;
+  letter-spacing: 0.12em;
+  line-height: 1.9;
+  writing-mode: vertical-rl;
+}
+
+.stroke {
+  animation: ink-in 500ms ease-out both;
+}
+
+.seal {
+  position: absolute;
+  bottom: 1rem;
+  left: 0.85rem;
+  padding: 0.3em 0.2em;
+  border: 2px solid var(--seal);
+  border-radius: 3px;
+  color: var(--seal);
+  font-family: var(--kai);
+  font-size: 0.8125rem;
+  line-height: 1.15;
+  writing-mode: vertical-rl;
+  opacity: 0;
+}
+
+.sealed .seal {
+  animation: stamp 500ms cubic-bezier(0.2, 0.8, 0.3, 1.2) forwards;
+}
+
+/* What was kept, lost and added */
+
+.compare {
+  display: grid;
+  gap: 1rem;
+  margin: 0 0 1rem;
+  animation: appear 900ms ease-out both;
+}
+
+.compare dt {
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+}
+
+.compare dd {
+  margin: 0;
+  color: var(--hand);
+  font-family: var(--kai);
+  font-size: 1.375rem;
+  line-height: 1.6;
+}
+
+.compare .lost {
+  opacity: 0.7;
+  color: var(--ink-soft);
+  text-decoration: underline dotted;
+  text-underline-offset: 0.3em;
+}
+
+.compare .added {
+  text-decoration: underline wavy var(--ink-soft);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.3em;
+}
+
+.premise {
+  margin: 2.75rem 0 0;
+  font-family: var(--kai);
+  font-size: 1.5rem;
+  line-height: 1.75;
+  animation: appear 1200ms ease-out both;
+}
+
+.premise .clause {
+  display: inline-block;
+}
+
+/* Chrome */
+
+.sound {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1rem;
+  padding: 0.25em 0;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.sound:hover {
+  color: var(--ink);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dissolve {
+  to {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateY(-0.5em);
+  }
+}
+
+@keyframes carried-off {
+  to {
+    opacity: 0;
+    filter: blur(3px);
+    transform: translate(1.25em, 0.9em) rotate(16deg);
+  }
+}
+
+@keyframes ink-in {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+
+@keyframes stamp {
+  from {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 760px) {
+  body {
+    font-size: 1.0625rem;
+  }
+
+  #app {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 4.5rem 1.25rem 6rem;
+  }
+
+  .scene {
+    grid-column: 1;
+  }
+
+  .road {
+    display: none;
+  }
+
+  .scroll-paper {
+    height: 14rem;
+  }
+
+  /* Fixed at the bottom it would sit on top of the text column. */
+  .sound {
+    position: absolute;
+    top: 1rem;
+    bottom: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
+}
