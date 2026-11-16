@@ -16,7 +16,7 @@ import {
   VERDICTS,
   type Station,
 } from './script';
-import type {View} from './view';
+import type {ComparisonRow, WriteOptions, Written} from './view';
 
 type StageId = 'origin' | Station['id'] | 'ferry' | 'gate' | 'summit';
 
@@ -29,17 +29,42 @@ const STAGES: readonly StageId[] = [
 ];
 
 /**
+ * What the game needs from the page. View draws it in the browser; the tests
+ * play through a scripted stand-in.
+ */
+export interface GameView {
+  enter(place?: string): Promise<void>;
+  setRoad(places: readonly string[]): void;
+  showTitle(name: string, note: string): void;
+  say(text: string, reason?: string): Promise<void>;
+  note(text: string): void;
+  premise(text: string): Promise<void>;
+  choose(labels: readonly string[]): Promise<number>;
+  proceed(label: string): Promise<void>;
+  write(options: WriteOptions): Promise<Written>;
+  dissolve(node: HTMLElement): Promise<void>;
+  pickChar(text: string, labelFor: (ch: string) => string): Promise<number>;
+  showScroll(seal: string): void;
+  inscribe(text: string): Promise<void>;
+  showComparison(rows: readonly ComparisonRow[]): void;
+}
+
+/**
  * Plays the journey from the title screen to the summit, and again.
  *
  * Each stage calls {@link Game.advance} once its choice is final. Progress is
  * saved there, so a reload resumes at the first stage not yet settled.
  */
 export class Game {
-  private readonly view: View;
+  private readonly view: GameView;
   private readonly store: SaveStore;
-  private readonly ambience: Ambience;
+  private readonly ambience: Pick<Ambience, 'start'>;
 
-  constructor(view: View, store: SaveStore, ambience: Ambience) {
+  constructor(
+    view: GameView,
+    store: SaveStore,
+    ambience: Pick<Ambience, 'start'>,
+  ) {
     this.view = view;
     this.store = store;
     this.ambience = ambience;
