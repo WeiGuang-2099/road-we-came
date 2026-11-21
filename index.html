@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="一段五分钟左右的短旅程。" />
+    <meta
+      name="description"
+      content="A journey of about five minutes. 一段五分钟左右的短旅程。"
+    />
     <!-- Match --fog in src/style.css. -->
     <meta
       name="theme-color"
@@ -17,14 +20,19 @@
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>来时路</title>
-    <!-- Link previews. Crawlers need absolute URLs, so these name the
-         GitHub Pages address; public/og.png is the image. -->
+    <!-- Link previews. Crawlers do not run the script that picks a
+         language, so the card carries both: the title leads with Chinese,
+         the description with English, so a preview cut short still shows
+         English readers some English. Crawlers need absolute URLs, so
+         these name the GitHub Pages address. public/og.png is drawn from
+         scripts/og.html by `npm run og`. -->
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="zh_CN" />
-    <meta property="og:title" content="来时路" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:title" content="来时路 · The Road We Came" />
     <meta
       property="og:description"
-      content="一段五分钟左右的短旅程。出发前写下一句理由，路上的人会一遍遍转述它，到了山顶，你要凭记忆把它写回那卷空白的经上。"
+      content="A journey of about five minutes. Before you set out, write down why you’re going. The people along the road will pass it on, again and again. At the summit, you write it back from memory onto a blank scroll. 一段五分钟左右的短旅程。出发前写下一句理由，路上的人会一遍遍转述它，到了山顶，你要凭记忆把它写回那卷空白的经上。"
     />
     <meta
       property="og:url"
@@ -38,7 +46,7 @@
     <meta property="og:image:height" content="630" />
     <meta
       property="og:image:alt"
-      content="月白底上竖排楷体写着“来时路”，下方一行小字“一段五分钟左右的短旅程。”"
+      content="The title 来时路 written top to bottom in Kai script, with The Road We Came and “A journey of about five minutes” beneath it. 月白底上竖排楷体写着“来时路”，下面是英文名和中英文各一行小字。"
     />
     <meta name="twitter:card" content="summary_large_image" />
   </head>

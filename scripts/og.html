@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>来时路 · The Road We Came</title>
+    <!-- The link preview card. `npm run og` draws this page at 1200x630
+         into public/og.png; the page itself is never served. -->
+    <link
+      rel="stylesheet"
+      href="../node_modules/lxgw-wenkai-webfont/lxgwwenkai-regular.css"
+    />
+    <style>
+      /* The light colours and fonts of src/style.css, laid out like the
+         title screen: the Chinese name down the middle, the English name
+         under it as the English title screen sets it, then one line in
+         each language and the seal. */
+      :root {
+        --fog: #dde5e8;
+        --ink: #23303a;
+        --ink-soft: #52626c;
+        --seal: #b23a2c;
+        --serif:
+          'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong',
+          'SimSun', serif;
+        --latin:
+          'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua',
+          Georgia, serif;
+        --kai: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', serif;
+      }
+
+      html,
+      body {
+        margin: 0;
+      }
+
+      body {
+        position: relative;
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        background: var(--fog);
+        color: var(--ink);
+        text-align: center;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      h1 {
+        margin: 0;
+        font-family: var(--kai);
+        font-size: 88px;
+        font-weight: 400;
+        letter-spacing: 0.3em;
+        line-height: 1;
+        writing-mode: vertical-rl;
+      }
+
+      .name {
+        margin: 20px 0 18px;
+        font-family: var(--kai);
+        font-size: 42px;
+        letter-spacing: 0.01em;
+        line-height: 1.2;
+      }
+
+      .note {
+        margin: 0;
+        color: var(--ink-soft);
+        font-family: var(--serif);
+        font-size: 23px;
+        line-height: 1.6;
+      }
+
+      .note:lang(en) {
+        font-family: var(--latin);
+        font-size: 22px;
+      }
+
+      .seal {
+        position: absolute;
+        right: 79px;
+        bottom: 63px;
+        padding: 0.3em 0.2em;
+        border: 2px solid var(--seal);
+        border-radius: 3px;
+        color: var(--seal);
+        font-family: var(--kai);
+        font-size: 22px;
+        line-height: 1.15;
+        writing-mode: vertical-rl;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>来时路</h1>
+    <p class="name" lang="en">The Road We Came</p>
+    <p class="note">一段五分钟左右的短旅程。</p>
+    <p class="note" lang="en">A journey of about five minutes.</p>
+    <div class="seal">来时路</div>
+  </body>
+</html>
