@@ -61,13 +61,9 @@ npm run dev
 
 游戏用 [GoatCounter](https://www.goatcounter.com/) 统计两件事：打开游戏算一次访问，走到山顶记一个事件。两者都按“网站/语言”命名，比如 `weiguang-2099.github.io/en`，所以 GitHub Pages 和 itch.io 的数字分得开。GoatCounter 不用 cookie，也不收集个人信息；玩家写的字从不发送，`Stats` 接口本身就不接收任何文字。
 
-打开的方法：
+统计页是 <https://weiguang2099.goatcounter.com>，要登录才能看。站点代码 `weiguang2099` 写在 [`src/stats.ts`](src/stats.ts) 的 `GOATCOUNTER_CODE` 里；换一个 GoatCounter 站点就改这里，推到 `main` 后 GitHub Pages 跟着换，itch.io 要重新 `npm run zip` 再上传一次。把代码改成空字符串就不再加载任何统计脚本。
 
-1. 在 goatcounter.com 注册，选一个站点代码，比如 `roadwecame`，统计页就是 `https://roadwecame.goatcounter.com`。
-2. 把代码填进 [`src/stats.ts`](src/stats.ts) 的 `GOATCOUNTER_CODE`。
-3. 推到 `main`，GitHub Pages 就开始统计；itch.io 要重新 `npm run zip` 再上传一次。
-
-代码为空时不加载任何统计脚本。在 localhost 上打开不计数，被广告拦截器拦下时也不计数，游戏都照常能玩。
+在 localhost 上打开不计数，被广告拦截器拦下时也不计数，游戏都照常能玩。想让自己的浏览器不计入，打开一次 `https://weiguang-2099.github.io/road-we-came/#toggle-goatcounter`，看到提示就好了；再打开一次恢复计数。这个开关存在浏览器里，只管 GitHub Pages，itch.io 上的游戏在另一个网址下，不受影响。
 
 统计脚本固定用 `count.v5.js`，并带上完整性校验（SRI）：它和玩家写的字在同一个页面里运行，地址上的文件一旦被换掉，浏览器就会拒绝执行。要换新版本时，从 GoatCounter 的 [count.js 版本说明](https://www.goatcounter.com/help/countjs-versions) 里同时换文件名和 hash。
 

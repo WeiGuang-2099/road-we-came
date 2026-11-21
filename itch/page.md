@@ -4,8 +4,8 @@
 
 ## 上传之前
 
-1. 想统计 itch.io 上的访问，先在 `src/stats.ts` 里填好 GoatCounter 的代码（见 README 的“访问统计”）。不填也能上传，只是不统计。
-2. 运行 `npm run zip`，得到 `laishilu.zip`。
+1. 访问统计已经开着（GoatCounter 站点 `weiguang2099`，见 README 的“访问统计”），打出来的包在 itch.io 上也会计数，名字是 itch.io 的网址加语言。
+2. 运行 `npm run zip`，得到 `laishilu.zip`。改过代码以后都要重新打包、重新上传。
 
 ## 基本信息
 

@@ -4,7 +4,7 @@ import type {Language} from './script';
  * The GoatCounter site that receives the counts: the name in
  * https://name.goatcounter.com. Left empty, nothing is counted.
  */
-const GOATCOUNTER_CODE = '';
+const GOATCOUNTER_CODE = 'weiguang2099';
 
 // A fixed version of GoatCounter's script, checked against its published
 // hash. It runs on the same page as the player's words, so the browser must
