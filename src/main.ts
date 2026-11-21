@@ -8,6 +8,7 @@ import {Game} from './game';
 import {SCRIPTS, otherLanguage, pickLanguage} from './language';
 import {SaveStore, browserStorage} from './save';
 import type {Language, Script} from './script';
+import {startStats} from './stats';
 import {View} from './view';
 
 /** The language switch and the sound toggle, kept in a corner. */
@@ -71,4 +72,11 @@ document.title = script.title.name;
 
 const ambience = new Ambience(store.isMuted());
 mountControls(language, script, ambience, store);
-void new Game(new View(root, script.road), store, ambience, script).start();
+const stats = startStats(language);
+void new Game(
+  new View(root, script.road),
+  store,
+  ambience,
+  script,
+  stats,
+).start();

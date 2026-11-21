@@ -4,7 +4,14 @@
     <meta charset="UTF-8" />
     <title>来时路 · The Road We Came</title>
     <!-- The link preview card. `npm run og` draws this page at 1200x630
-         into public/og.png; the page itself is never served. -->
+         into public/og.png, and with ?cover at 630x500 into
+         itch/cover.png, the cover itch.io shows in its listings. The page
+         itself is never served. -->
+    <script>
+      if (new URLSearchParams(location.search).has('cover')) {
+        document.documentElement.classList.add('cover');
+      }
+    </script>
     <link
       rel="stylesheet"
       href="../node_modules/lxgw-wenkai-webfont/lxgwwenkai-regular.css"
@@ -90,6 +97,32 @@
         font-size: 22px;
         line-height: 1.15;
         writing-mode: vertical-rl;
+      }
+
+      /* The itch.io cover is shown at half size in listings, so it keeps
+         only the two names and the seal. */
+      .cover body {
+        width: 630px;
+        height: 500px;
+      }
+
+      .cover h1 {
+        font-size: 92px;
+      }
+
+      .cover .name {
+        margin: 14px 0 0;
+        font-size: 38px;
+      }
+
+      .cover .note {
+        display: none;
+      }
+
+      .cover .seal {
+        right: 36px;
+        bottom: 34px;
+        font-size: 18px;
       }
     </style>
   </head>

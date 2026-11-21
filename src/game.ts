@@ -5,6 +5,7 @@ import {drift} from './drift';
 import {Random, randomSeed} from './random';
 import type {Run, SaveStore} from './save';
 import type {Script, Station, StationId, Visit} from './script';
+import type {Stats} from './stats';
 import type {ComparisonRow, WriteOptions, Written} from './view';
 
 /** The stations, in the order the road reaches them. */
@@ -63,17 +64,20 @@ export class Game {
   private readonly store: SaveStore;
   private readonly ambience: Pick<Ambience, 'start'>;
   private readonly script: Script;
+  private readonly stats: Stats;
 
   constructor(
     view: GameView,
     store: SaveStore,
     ambience: Pick<Ambience, 'start'>,
     script: Script,
+    stats: Stats,
   ) {
     this.view = view;
     this.store = store;
     this.ambience = ambience;
     this.script = script;
+    this.stats = stats;
   }
 
   async start(): Promise<void> {
@@ -272,6 +276,9 @@ export class Game {
     });
     this.store.clearRun();
     run.stage = STAGES.length;
+    // Counted once the journey is saved as finished, so a reload from here
+    // starts a new journey instead of counting this one again.
+    this.stats.reachedSummit();
 
     await this.view.inscribe(recall);
     const remembered = align(run.origin, recall);

@@ -13,6 +13,7 @@ import {
 } from './script';
 import {EN} from './script_en';
 import {ZH} from './script_zh';
+import type {Stats} from './stats';
 import type {ComparisonRow, WriteOptions, Written} from './view';
 
 const {
@@ -191,14 +192,30 @@ class ScriptedView implements GameView {
   }
 }
 
+/** Counts the journeys the game reports, as the visit counter would. */
+class CountingStats implements Stats {
+  summits = 0;
+
+  reachedSummit(): void {
+    this.summits += 1;
+  }
+}
+
 /** Opens the game on `storage` and plays `answers` until they run out. */
 async function play(
   storage: Storage,
   answers: readonly Answer[],
   script: Script = ZH,
+  stats: Stats = new CountingStats(),
 ): Promise<ScriptedView> {
   const view = new ScriptedView(answers);
-  void new Game(view, new SaveStore(storage), {start() {}}, script).start();
+  void new Game(
+    view,
+    new SaveStore(storage),
+    {start() {}},
+    script,
+    stats,
+  ).start();
   await view.stopped;
   if (view.answers.length > 0) {
     throw new Error(
@@ -389,6 +406,19 @@ describe('Game', () => {
 
     expect(view.lines).not.toContain(SUMMIT.count(1));
     expect(view.lines).toContain(SUMMIT.count(2));
+  });
+
+  it('tells the visit counter once a journey reaches the summit', async () => {
+    const storage = new MemoryStorage();
+    const stats = new CountingStats();
+    await play(storage, [pick(TITLE.start), ...before('summit')], ZH, stats);
+    expect(stats.summits).toBe(0);
+
+    // A reload before writing at the summit resumes there; one at the end
+    // starts a new journey instead of counting this one again.
+    await play(storage, [pick(TITLE.resume), ...from('summit')], ZH, stats);
+    await play(storage, [], ZH, stats);
+    expect(stats.summits).toBe(1);
   });
 
   it('recalls the reason written on the journey before', async () => {

@@ -21,15 +21,15 @@ npm install
 npm run dev
 ```
 
-| 命令             | 作用                                          |
-| ---------------- | --------------------------------------------- |
-| `npm run dev`    | 本地开发服务器                                |
-| `npm test`       | 单元测试                                      |
-| `npm run lint`   | ESLint 和 Prettier 检查                       |
-| `npm run format` | 自动格式化                                    |
-| `npm run build`  | 类型检查并构建到 `dist/`                      |
-| `npm run zip`    | 构建并打包成 `laishilu.zip`，用来上传 itch.io |
-| `npm run og`     | 用本机的 Chrome 或 Edge 重画分享卡片的图片    |
+| 命令             | 作用                                                |
+| ---------------- | --------------------------------------------------- |
+| `npm run dev`    | 本地开发服务器                                      |
+| `npm test`       | 单元测试                                            |
+| `npm run lint`   | ESLint 和 Prettier 检查                             |
+| `npm run format` | 自动格式化                                          |
+| `npm run build`  | 类型检查并构建到 `dist/`                            |
+| `npm run zip`    | 构建并打包成 `laishilu.zip`，用来上传 itch.io       |
+| `npm run og`     | 用本机的 Chrome 或 Edge 重画分享卡片和 itch.io 封面 |
 
 ## 部署到 GitHub Pages
 
@@ -53,7 +53,23 @@ npm run dev
 
 1. 运行 `npm run zip`，得到 `laishilu.zip`。
 2. 在 itch.io 新建项目，Kind of project 选 **HTML**，上传这个 zip，并勾选 **This file will be played in the browser**。
-3. 嵌入选项里可以勾选 **Mobile friendly** 和 **Fullscreen button**，排版会跟着窗口大小调整。
+3. 嵌入选项：视口 960×720，勾选 **Mobile friendly**、**Fullscreen button** 和 **Enable scrollbars**。山顶那一页比 720 高，不开滚动条就看不到下面的对照。
+
+页面要填的文字、分类、标签，还有封面和截图，都在 [`itch/`](itch/) 里，照着 [`itch/page.md`](itch/page.md) 填就行。
+
+## 访问统计
+
+游戏用 [GoatCounter](https://www.goatcounter.com/) 统计两件事：打开游戏算一次访问，走到山顶记一个事件。两者都按“网站/语言”命名，比如 `weiguang-2099.github.io/en`，所以 GitHub Pages 和 itch.io 的数字分得开。GoatCounter 不用 cookie，也不收集个人信息；玩家写的字从不发送，`Stats` 接口本身就不接收任何文字。
+
+打开的方法：
+
+1. 在 goatcounter.com 注册，选一个站点代码，比如 `roadwecame`，统计页就是 `https://roadwecame.goatcounter.com`。
+2. 把代码填进 [`src/stats.ts`](src/stats.ts) 的 `GOATCOUNTER_CODE`。
+3. 推到 `main`，GitHub Pages 就开始统计；itch.io 要重新 `npm run zip` 再上传一次。
+
+代码为空时不加载任何统计脚本。在 localhost 上打开不计数，被广告拦截器拦下时也不计数，游戏都照常能玩。
+
+统计脚本固定用 `count.v5.js`，并带上完整性校验（SRI）：它和玩家写的字在同一个页面里运行，地址上的文件一旦被换掉，浏览器就会拒绝执行。要换新版本时，从 GoatCounter 的 [count.js 版本说明](https://www.goatcounter.com/help/countjs-versions) 里同时换文件名和 hash。
 
 ## 代码结构
 
@@ -69,6 +85,7 @@ npm run dev
 | `src/compare.ts`   | 终点的原文对照和评语                                         |
 | `src/view.ts`      | 页面渲染、输入框、选项                                       |
 | `src/save.ts`      | 本地存档                                                     |
+| `src/stats.ts`     | 访问统计：打开游戏和走到山顶，交给 GoatCounter               |
 | `src/ambience.ts`  | 用 WebAudio 合成的风声，第一次点击后才响                     |
 | `src/random.ts`    | 带种子的随机数，刷新页面后转述结果不变                       |
 | `src/chars.ts`     | 把句子切成词：中文一个字算一个词，英文按单词；标点和空格不算 |
@@ -81,7 +98,7 @@ npm run dev
 - 输入框处理了中文输入法组字时按回车的情况。以后换引擎或重写界面，也别改成在 canvas 里自绘的输入框。
 - 出发时至少要写两个词（中文两个字，英文两个单词），路上改口至少要一个字，不够时按下按钮，输入框下面会提示"再多写几个字。"。路人转述最多把理由磨到两个词，所以只要玩家自己不改短，渡口总有两个词可挑，山顶也总能剩下点什么。山顶默写不设下限，写一串省略号也算一种回答。
 - 楷体用的是霞鹜文楷（npm 包 `lxgw-wenkai-webfont`，字体按 SIL OFL 1.1 授权），按 unicode-range 拆成 97 块，浏览器只下载页面上用到的字。
-- 分享卡片的标签在 `index.html`，图片是 `public/og.png`（1200×630），照着标题页画在 `scripts/og.html` 里，改了它要运行 `npm run og` 重画（找不到浏览器时，用环境变量 `CHROME` 指定路径）。生成链接预览的爬虫不运行脚本，用不上语言选择，所以卡片只有一张，中英双语：标题中文在前，描述英文在前，预览被截短时英文读者也能读到英文。
+- 分享卡片的标签在 `index.html`，图片是 `public/og.png`（1200×630），照着标题页画在 `scripts/og.html` 里；同一个页面加上 `?cover`，就是 itch.io 的封面 `itch/cover.png`（630×500）。改了它要运行 `npm run og` 重画两张图（找不到浏览器时，用环境变量 `CHROME` 指定路径）。生成链接预览的爬虫不运行脚本，用不上语言选择，所以卡片只有一张，中英双语：标题中文在前，描述英文在前，预览被截短时英文读者也能读到英文。
 - 英文版的经卷改成横排，印章仍然用中文的"来时路"。
 - 茶寮、驿站、桥头的台词各有几套：第一趟用 `first`，之后按走到山顶的次数轮流用 `later` 里的几套，抹去走过的路后从头算。同一趟里三处用的是同一个序号，所以 `later` 是按趟写的：第一套三处都认出了你，第二套从茶寮的小雨一直下到驿站，到桥头已是雨后。加新的一套时，三处要一起加。
 - `package.json` 里的 `overrides` 是为了让 typescript-eslint 用上修复过安全问题的 minimatch，等它自己升级依赖后可以删掉。
